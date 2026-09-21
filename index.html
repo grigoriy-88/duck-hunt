@@ -622,8 +622,8 @@ function shoot() {
   if (!hit) sfx.miss();
 
   if (game.ammo <= 0) {
-    game.reloadTimer = 90;
-    setTimeout(sfx.reload, 800);
+    game.reloadTimer = 180;
+    setTimeout(sfx.reload, 1600);
   }
 }
 
