@@ -640,39 +640,49 @@ class Dog {
     this.timer = 0;
   }
   update() {
-    this.timer++;
-    if (this.duck && !this.duck.alive) this.duck = null;
+  this.timer++;
 
-    switch (this.state) {
-      case 'running_in': {
-        if (!this.duck) { this.state = 'hidden'; return; }
-        const dx = this.duck.x - this.x;
-        if (Math.abs(dx) > 8) {
-          this.facing = Math.sign(dx);
-          this.x += this.facing * 6;
-        }
-        this.y = H - 80 - Math.abs(Math.sin(this.timer*0.3))*6;
-        if (this.duck.y > H - 110 && Math.abs(this.x - this.duck.x) < 40) this.grab();
-        break;
-      }
-      case 'grabbing':
-        if (this.timer > 20) {
-          this.state = 'running_out'; this.timer = 0;
-          this.facing = this.x < W/2 ? -1 : 1;
-        }
-        break;
-      case 'running_out':
+  // Сброс, если утки больше нет в игре или она мертва
+  if (this.duck && (!this.duck.alive || !ducks.includes(this.duck))) {
+    this.duck = null;
+    if (this.state === 'running_in') this.state = 'hidden';
+  }
+
+  switch (this.state) {
+    case 'running_in': {
+      if (!this.duck) { this.state = 'hidden'; return; }
+      // Страховка: если бежит больше 5 секунд — сдаться
+      if (this.timer > 300) { this.duck = null; this.state = 'hidden'; return; }
+
+      const dx = this.duck.x - this.x;
+      if (Math.abs(dx) > 8) {
+        this.facing = Math.sign(dx);
         this.x += this.facing * 6;
-        this.y = H - 80 - Math.abs(Math.sin(this.timer*0.3))*6;
-        if (this.x < -80 || this.x > W + 80) this.state = 'hidden';
-        break;
-      case 'popping':
-        if (this.timer < 20) this.y = H - 40 - this.timer * 3;
-        else if (this.timer < 95) this.laughPhase += 0.4;
-        else if (this.timer < 130) this.y += 4;
-        else this.state = 'hidden';
-        break;
+      }
+      this.y = H - 80 - Math.abs(Math.sin(this.timer * 0.3)) * 6;
+      if (this.duck.y > H - 110 && Math.abs(this.x - this.duck.x) < 40) this.grab();
+      break;
     }
+    case 'grabbing':
+      if (this.timer > 20) {
+        this.state = 'running_out';
+        this.timer = 0;
+        this.facing = this.x < W / 2 ? -1 : 1;
+      }
+      break;
+    case 'running_out':
+      this.x += this.facing * 6;
+      this.y = H - 80 - Math.abs(Math.sin(this.timer * 0.3)) * 6;
+      if (this.x < -80 || this.x > W + 80) this.state = 'hidden';
+      break;
+    case 'popping':
+      if (this.timer < 20) this.y = H - 40 - this.timer * 3;
+      else if (this.timer < 95) this.laughPhase += 0.4;
+      else if (this.timer < 130) this.y += 4;
+      else this.state = 'hidden';
+      break;
+  }
+}
   }
   draw() {
     if (this.state === 'hidden') return;
@@ -908,14 +918,14 @@ function startGame() {
   game.ducksKilled = 0;
   game.ducksNeeded = 6;
   ducks = []; particles = []; floaters = [];
-  dog.state = 'hidden'; dog.duck = null;
+    dog.state = 'hidden'; dog.duck = null; dog.timer = 0;
   showScreen(null);
    stats.games++;
   saveStats();
 }
 
 function nextRound() {
-  stats.rounds++;        // ← добавил
+  stats.rounds++;
   game.round++;
   game.ducksKilled = 0;
   game.duckSpeed += 0.35;
@@ -926,6 +936,10 @@ function nextRound() {
   game.reloadTimer = 0;
   state = STATE.PLAY;
   ducks = [];
+  // ⬇ Сброс собаки, чтобы не топталась на месте
+  dog.state = 'hidden';
+  dog.duck = null;
+  dog.timer = 0;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1335,10 +1349,10 @@ document.addEventListener('click', async e => {
     if (state === STATE.GAME_OVER) showScreen('gameoverScreen');
     else showScreen('menuScreen');
   }
-  else if (action === 'menu') {
+    else if (action === 'menu') {
     state = STATE.MENU;
     ducks = []; particles = []; floaters = [];
-    dog.state = 'hidden'; dog.duck = null;
+    dog.state = 'hidden'; dog.duck = null; dog.timer = 0;
     showScreen('menuScreen');
   }
    else if (action === 'leader') {
