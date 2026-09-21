@@ -143,6 +143,49 @@
 }
 .music-btn:active { transform: scale(0.92); }
 .music-btn.on { background: #22a355; border-color: #4ade80; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  width: min(560px, 92vw);
+  margin: 12px 0;
+}
+.stat-card {
+  background: rgba(30,41,59,0.9);
+  border: 2px solid #334155;
+  border-radius: 8px;
+  padding: 10px 12px;
+  text-align: left;
+}
+.stat-card .k {
+  font-size: 11px; color:#94a3b8;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.stat-card .v {
+  font-size: 22px; color:#ffe066; font-weight: bold; margin-top: 2px;
+}
+.top-list {
+  width: min(560px, 92vw);
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 6px 0 14px;
+}
+.top-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px;
+  background: rgba(30,41,59,0.9);
+  border: 2px solid #334155;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+.top-item.first { border-color: #ffe066; background: rgba(120,80,0,0.4); }
+.top-item .rank { color:#94a3b8; width: 26px; font-weight: bold; }
+.top-item .score { color:#4ade80; font-weight: bold; flex: 1; text-align: left; }
+.top-item .round { color:#94a3b8; font-size: 12px; }
+.top-item .date { color:#64748b; font-size: 11px; }
+ 
 </style>
 </head>
 <body>
@@ -160,6 +203,7 @@
     <p>🏆 Убей нужное число уток — новый раунд</p>
     <button class="btn" data-action="start">▶ Играть</button>
     <button class="btn secondary" data-action="bonuses">🎁 Получить жизни</button>
+   <button class="btn ghost" data-action="leader">🏆 Рекорды</button>
     <div class="hint" id="vkGreeting"></div>
   </div>
 
@@ -171,6 +215,7 @@
     <p>Раунд: <span id="finalRound">1</span></p>
     <button class="btn" data-action="restart">🔄 Играть снова</button>
     <button class="btn secondary" data-action="bonuses">🎁 Получить жизни</button>
+   <button class="btn ghost" data-action="leader">🏆 Рекорды</button>
     <button class="btn ghost" data-action="menu">🏠 В меню</button>
   </div>
 
@@ -183,7 +228,15 @@
     <div class="hint">Каждый бонус можно получить один раз. Прогресс сохраняется.</div>
     <div class="loader" id="bonusLoader"></div>
   </div>
-
+  <div class="screen" id="leaderScreen">
+    <h1>🏆 РЕКОРДЫ</h1>
+    <div class="stats-grid" id="statsGrid"></div>
+    <h2 style="margin-top:10px;font-size:18px;">Топ-10 игр</h2>
+    <div class="top-list" id="topList"></div>
+    <button class="btn ghost" data-action="close-leader">← Назад</button>
+    <button class="btn ghost" data-action="reset-scores"
+      style="font-size:13px;min-width:auto;padding:8px 18px;color:#f87171;">🗑 Сбросить</button>
+  </div>
 </div>
 
 <script>
@@ -1156,7 +1209,35 @@ async function loadClaimed() {
     claimed[b.id] = v === '1';
   }
 }
+async function renderLeader() {
+  const grid = document.getElementById('statsGrid');
+  const acc = stats.shots > 0 ? Math.round(stats.hits / stats.shots * 100) : 0;
+  grid.innerHTML = `
+    <div class="stat-card"><div class="k">Игр</div><div class="v">${stats.games}</div></div>
+    <div class="stat-card"><div class="k">Выстрелов</div><div class="v">${stats.shots}</div></div>
+    <div class="stat-card"><div class="k">Попаданий</div><div class="v">${stats.hits}</div></div>
+    <div class="stat-card"><div class="k">Точность</div><div class="v">${acc}%</div></div>
+    <div class="stat-card"><div class="k">Лучший счёт</div><div class="v">${stats.bestScore}</div></div>
+    <div class="stat-card"><div class="k">Лучший раунд</div><div class="v">${stats.bestRound}</div></div>
+  `;
 
+  const list = document.getElementById('topList');
+  if (topScores.length === 0) {
+    list.innerHTML = '<div style="color:#64748b;padding:20px;text-align:center;">Пока нет записей</div>';
+  } else {
+    list.innerHTML = topScores.map((s, i) => {
+      const d = new Date(s.date || Date.now());
+      const dateStr = d.toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit' });
+      return '<div class="top-item ' + (i === 0 ? 'first' : '') + '">' +
+        '<span class="rank">#' + (i + 1) + '</span>' +
+        '<span class="score">' + s.score + '</span>' +
+        '<span class="round">раунд ' + s.round + '</span>' +
+        '<span class="date">' + dateStr + '</span>' +
+      '</div>';
+    }).join('');
+  }
+}
+ 
 async function renderBonusList() {
   const el = document.getElementById('bonusList');
   el.innerHTML = '';
@@ -1259,6 +1340,20 @@ document.addEventListener('click', async e => {
     ducks = []; particles = []; floaters = [];
     dog.state = 'hidden'; dog.duck = null;
     showScreen('menuScreen');
+  }
+   else if (action === 'leader') {
+    await renderLeader();
+    showScreen('leaderScreen');
+  }
+  else if (action === 'close-leader') {
+    if (state === STATE.GAME_OVER) showScreen('gameoverScreen');
+    else showScreen('menuScreen');
+  }
+  else if (action === 'reset-scores') {
+    if (confirm('Сбросить все рекорды и статистику?')) {
+      await resetStats();
+      await renderLeader();
+    }
   }
 });
 
