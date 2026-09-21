@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>🦆 Охота на уток</title>
+<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; user-select:none; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#0a0a1a;
+    font-family: 'Courier New', monospace; color:#fff; }
+  #game { display:block; width:100vw; height:100vh; cursor:none; touch-action:none; }
+
+  #ui { position:fixed; inset:0; pointer-events:none; z-index:10; }
+  .screen {
+    position:absolute; inset:0; display:none;
+    flex-direction:column; align-items:center; justify-content:center;
+    background: rgba(5,10,25,0.88);
+    backdrop-filter: blur(4px);
+    pointer-events:auto;
+    padding: 20px;
+    text-align:center;
+  }
+  .screen.show { display:flex; }
+
+  .screen h1 {
+    font-size: clamp(28px, 6vw, 56px);
+    color:#ffe066;
+    text-shadow: 0 4px 0 #000, 0 0 20px rgba(255,224,102,0.5);
+    margin-bottom: 18px;
+    letter-spacing: 2px;
+  }
+  .screen h2 {
+    font-size: clamp(18px, 3vw, 26px);
+    color:#4ade80;
+    margin-bottom: 12px;
+  }
+  .screen p {
+    font-size: clamp(14px, 2.2vw, 18px);
+    color:#cbd5e1;
+    margin: 6px 0;
+    line-height: 1.5;
+  }
+  .screen .big {
+    font-size: clamp(36px, 8vw, 64px);
+    color:#fff;
+    font-weight: bold;
+    margin: 10px 0 20px;
+    text-shadow: 0 0 20px #4ade80;
+  }
+  .btn {
+    background: linear-gradient(180deg, #4ade80 0%, #22a355 100%);
+    color:#052e16;
+    border: none;
+    padding: 14px 32px;
+    font-size: clamp(16px, 2.5vw, 20px);
+    font-family: inherit;
+    font-weight: bold;
+    letter-spacing: 1px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 8px;
+    box-shadow: 0 4px 0 #166534, 0 6px 20px rgba(0,0,0,0.5);
+    transition: transform 0.05s, box-shadow 0.05s;
+    text-transform: uppercase;
+    min-width: 260px;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #166534; }
+  .btn.secondary {
+    background: linear-gradient(180deg, #facc15 0%, #d97706 100%);
+    box-shadow: 0 4px 0 #92400e, 0 6px 20px rgba(0,0,0,0.5);
+    color:#451a03;
+  }
+  .btn.secondary:active { box-shadow: 0 1px 0 #92400e; }
+  .btn.ghost {
+    background: transparent;
+    color:#cbd5e1;
+    box-shadow: inset 0 0 0 2px #475569;
+    min-width: 200px;
+    font-size: 16px;
+    padding: 10px 24px;
+  }
+  .btn:disabled {
+    background: linear-gradient(180deg, #475569 0%, #334155 100%);
+    color:#94a3b8;
+    cursor: not-allowed;
+    box-shadow: 0 4px 0 #1e293b;
+  }
+
+  .bonus-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    width: min(560px, 92vw);
+    margin: 16px 0;
+  }
+  .bonus-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(30,41,59,0.9);
+    border: 2px solid #334155;
+    border-radius: 10px;
+    padding: 10px 14px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .bonus-item .icon { font-size: 26px; width: 34px; text-align: center; }
+  .bonus-item .info { flex: 1; text-align: left; }
+  .bonus-item .label { font-size: 15px; color:#e2e8f0; font-weight: bold; }
+  .bonus-item .reward { font-size: 12px; color:#4ade80; margin-top: 2px; }
+  .bonus-item button {
+    padding: 8px 16px;
+    background: #4ade80; color: #052e16; border: none;
+    font-family: inherit; font-weight: bold;
+    font-size: 13px; border-radius: 6px; cursor: pointer;
+    min-width: 100px;
+    transition: opacity 0.15s;
+  }
+  .bonus-item button:disabled {
+    background: #334155; color: #64748b; cursor: default;
+  }
+  .bonus-item.claimed { opacity: 0.55; border-color: #1e293b; }
+  .bonus-item.claimed .icon { filter: grayscale(1); }
+
+  .hint { font-size: 13px; color:#94a3b8; margin-top: 12px; max-width: 500px; }
+  .loader { color: #94a3b8; font-size: 14px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="ui">
+
+  <!-- ГЛАВНОЕ МЕНЮ -->
+  <div class="screen show" id="menuScreen">
+    <h1>🦆 ОХОТА НА УТОК</h1>
+    <p>🎯 Наведи прицел мышью или пальцем</p>
+    <p>💥 Клик / тап — выстрел</p>
+    <p>❤️ У тебя 3 жизни. Утка улетела — минус жизнь</p>
+    <p>🏆 Убей нужное число уток — новый раунд</p>
+    <button class="btn" data-action="start">▶ Играть</button>
+    <button class="btn secondary" data-action="bonuses">🎁 Получить жизни</button>
+    <div class="hint" id="vkGreeting"></div>
+  </div>
+
+  <!-- КОНЕЦ ИГРЫ -->
+  <div class="screen" id="gameoverScreen">
+    <h1>💀 ИГРА ОКОНЧЕНА</h1>
+    <p>Твой результат:</p>
+    <div class="big" id="finalScore">0</div>
+    <p>Раунд: <span id="finalRound">1</span></p>
+    <button class="btn" data-action="restart">🔄 Играть снова</button>
+    <button class="btn secondary" data-action="bonuses">🎁 Получить жизни</button>
+    <button class="btn ghost" data-action="menu">🏠 В меню</button>
+  </div>
+
+  <!-- БОНУСЫ -->
+  <div class="screen" id="bonusScreen">
+    <h1>🎁 БОНУСНЫЕ ЖИЗНИ</h1>
+    <p>За каждое действие — дополнительные жизни</p>
+    <div class="bonus-list" id="bonusList"></div>
+    <button class="btn ghost" data-action="close-bonus">← Назад</button>
+    <div class="hint">Каждый бонус можно получить один раз. Прогресс сохраняется.</div>
+    <div class="loader" id="bonusLoader"></div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  ⚙️  НАСТРОЙКИ VK — ЗАМЕНИ НА СВОИ ЗНАЧЕНИЯ
+// ═══════════════════════════════════════════════════════════════
+const VK_GROUP_ID = 228373135;   // ← ID сообщества (без минуса)
+const VK_POST_ID  = 6017;           // ← ID поста для лайка/коммента
+const VK_APP_ID   = app54782689;    // ← ID приложения
+const START_LIVES = 3;
+
+// ═══════════════════════════════════════════════════════════════
+//  VK BRIDGE
+// ═══════════════════════════════════════════════════════════════
+let vkReady = false;
+let vkUser = null;
+
+if (window.vkBridge) {
+  vkBridge.send('VKWebAppInit')
+    .then(() => { vkReady = true; })
+    .catch(e => console.log('VK init error:', e));
+  vkBridge.send('VKWebAppGetUserInfo')
+    .then(u => {
+      vkUser = u;
+      const g = document.getElementById('vkGreeting');
+      if (g) g.textContent = '👋 Привет, ' + u.first_name + '!';
+    })
+    .catch(() => {});
+}
+
+async function vkSend(method, params) {
+  if (!vkReady) throw new Error('VK Bridge not ready');
+  return vkBridge.send(method, params || {});
+}
+
+// Хранилище (VK Storage с fallback на localStorage)
+async function storageGet(key) {
+  try {
+    if (vkReady) {
+      const r = await vkSend('VKWebAppStorageGet', { keys: [key] });
+      return r.keys[0]?.value || null;
+    }
+  } catch (e) {}
+  return localStorage.getItem('dh_' + key);
+}
+async function storageSet(key, value) {
+  try {
+    if (vkReady) {
+      await vkSend('VKWebAppStorageSet', { key, value: String(value) });
+    }
+  } catch (e) {}
+  localStorage.setItem('dh_' + key, String(value));
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CANVAS
+// ═══════════════════════════════════════════════════════════════
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = 800, H = 600;
+let scale = 1, offsetX = 0, offsetY = 0;
+
+function resize() {
+  const winW = window.innerWidth, winH = window.innerHeight;
+  scale = Math.min(winW / W, winH / H);
+  canvas.width = winW * devicePixelRatio;
+  canvas.height = winH * devicePixelRatio;
+  canvas.style.width = winW + 'px';
+  canvas.style.height = winH + 'px';
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  offsetX = (winW - W * scale) / 2;
+  offsetY = (winH - H * scale) / 2;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ═══════════════════════════════════════════════════════════════
+//  ЗВУК
+// ═══════════════════════════════════════════════════════════════
+let actx = null;
+function initAudio() {
+  if (!actx) try { actx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){}
+}
+function beep(freq, dur, type='square', vol=0.12) {
+  if (!actx) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+  o.connect(g); g.connect(actx.destination);
+  o.start(); o.stop(actx.currentTime + dur);
+}
+const sfx = {
+  shoot:  () => { beep(200,0.08,'square',0.25); beep(80,0.15,'sawtooth',0.2); },
+  hit:    () => { beep(900,0.1,'square',0.2); beep(1400,0.12,'square',0.15); },
+  miss:   () => { beep(120,0.15,'sawtooth',0.15); },
+  reload: () => { beep(300,0.05,'square',0.1); setTimeout(()=>beep(500,0.05,'square',0.1),80); },
+  life:   () => { beep(600,0.1,'sine',0.2); setTimeout(()=>beep(900,0.15,'sine',0.2),100); setTimeout(()=>beep(1200,0.2,'sine',0.15),200); },
+  over:   () => { beep(400,0.3,'sawtooth',0.2); setTimeout(()=>beep(300,0.3,'sawtooth',0.2),250); setTimeout(()=>beep(200,0.5,'sawtooth',0.2),500); }
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  СОСТОЯНИЕ
+// ═══════════════════════════════════════════════════════════════
+const STATE = { MENU:0, PLAY:1, ROUND_END:2, GAME_OVER:3 };
+let state = STATE.MENU;
+
+const game = {
+  score: 0,
+  round: 1,
+  ammo: 3,
+  maxAmmo: 3,
+  lives: START_LIVES,
+  ducksKilled: 0,
+  ducksNeeded: 6,
+  duckSpeed: 1.2,
+  spawnTimer: 0,
+  spawnInterval: 90,
+  maxDucksOnScreen: 1,
+  reloadTimer: 0,
+  gameOverDelay: 0
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  УТКА
+// ═══════════════════════════════════════════════════════════════
+class Duck {
+  constructor() {
+    this.dir = Math.random() < 0.5 ? 1 : -1;
+    this.x = this.dir === 1 ? -50 : W + 50;
+    this.y = 150 + Math.random() * 200;
+    this.vx = this.dir * (1.5 + game.duckSpeed * 0.3 + Math.random() * 0.8);
+    this.vy = (Math.random() - 0.5) * 1.5;
+    this.alive = true;
+    this.hit = false;
+    this.fallVy = 0;
+    this.rot = 0;
+    this.wingPhase = Math.random() * Math.PI * 2;
+    this.changeTimer = 80 + Math.random() * 60;
+    this.grabbed = false;
+  }
+  update() {
+    if (this.hit) {
+      this.fallVy += 0.5;
+      this.y += this.fallVy;
+      this.rot += 0.15;
+      if (this.y > H - 60) {
+        // утка дошла до земли — ждём собаку
+        this.fallVy = 0;
+        this.y = H - 60;
+      }
+      return;
+    }
+    this.x += this.vx;
+    this.y += this.vy;
+    this.wingPhase += 0.3;
+
+    // зигзаг — с ростом раунда утки хитрее
+    this.changeTimer--;
+    if (this.changeTimer <= 0) {
+      this.vx = -this.vx;
+      this.dir = -this.dir;
+      this.vy = (Math.random() - 0.5) * (1 + game.round * 0.25);
+      const base = Math.max(25, 110 - game.round * 10);
+      this.changeTimer = base + Math.random() * 40;
+    }
+
+    if (this.y < 80) { this.y = 80; this.vy = Math.abs(this.vy); }
+    if (this.y > H - 180) { this.y = H - 180; this.vy = -Math.abs(this.vy); }
+
+    if (this.x < -80 || this.x > W + 80) {
+      this.alive = false;
+      onDuckEscaped();
+    }
+  }
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.hit ? this.rot : 0);
+    if (this.dir === -1) ctx.scale(-1, 1);
+
+    const wing = Math.sin(this.wingPhase) * 8;
+    const isDown = this.hit;
+
+    ctx.fillStyle = isDown ? '#888' : '#4a3728';
+    ctx.beginPath(); ctx.ellipse(0,0,22,14,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = isDown ? '#aaa' : '#8b6f47';
+    ctx.beginPath(); ctx.ellipse(6,2,12,10,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = isDown ? '#999' : '#2d5016';
+    ctx.beginPath(); ctx.arc(20,-6,10,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#e8a020';
+    ctx.beginPath(); ctx.moveTo(28,-6); ctx.lineTo(38,-4); ctx.lineTo(28,-1); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(23,-8,2.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(23.5,-8,1.2,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = isDown ? '#777' : '#3a2818';
+    ctx.beginPath();
+    ctx.moveTo(-5,-2);
+    ctx.quadraticCurveTo(-15,-10+wing,-25,-2);
+    ctx.quadraticCurveTo(-15,4+wing*0.5,-5,2);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = isDown ? '#777' : '#2a1a10';
+    ctx.beginPath(); ctx.moveTo(-20,-2); ctx.lineTo(-32,-6); ctx.lineTo(-30,4); ctx.closePath(); ctx.fill();
+
+    ctx.restore();
+  }
+  checkHit(mx, my) {
+    if (this.hit) return false;
+    const dx = mx - this.x, dy = my - this.y;
+    return dx*dx + dy*dy < 30*30;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  СОБАКА
+// ═══════════════════════════════════════════════════════════════
+class Dog {
+  constructor() {
+    this.state = 'hidden';
+    this.x = 0; this.y = H - 80;
+    this.duck = null; this.timer = 0;
+    this.facing = 1; this.laughPhase = 0;
+  }
+  startFetch(duck) {
+    this.duck = duck;
+    this.x = duck.x < W/2 ? -60 : W + 60;
+    this.y = H - 80;
+    this.facing = duck.x < W/2 ? 1 : -1;
+    this.state = 'running_in';
+    this.timer = 0;
+  }
+  startLaugh() {
+    this.x = W/2 + (Math.random()-0.5)*200;
+    this.y = H - 40;
+    this.state = 'popping';
+    this.timer = 0;
+    this.laughPhase = 0;
+  }
+  grab() {
+    if (this.duck) { this.duck.alive = false; this.duck = null; }
+    this.y = H - 80;
+    this.state = 'grabbing';
+    this.timer = 0;
+  }
+  update() {
+    this.timer++;
+    if (this.duck && !this.duck.alive) this.duck = null;
+
+    switch (this.state) {
+      case 'running_in': {
+        if (!this.duck) { this.state = 'hidden'; return; }
+        const dx = this.duck.x - this.x;
+        if (Math.abs(dx) > 8) {
+          this.facing = Math.sign(dx);
+          this.x += this.facing * 6;
+        }
+        this.y = H - 80 - Math.abs(Math.sin(this.timer*0.3))*6;
+        if (this.duck.y > H - 110 && Math.abs(this.x - this.duck.x) < 40) this.grab();
+        break;
+      }
+      case 'grabbing':
+        if (this.timer > 20) {
+          this.state = 'running_out'; this.timer = 0;
+          this.facing = this.x < W/2 ? -1 : 1;
+        }
+        break;
+      case 'running_out':
+        this.x += this.facing * 6;
+        this.y = H - 80 - Math.abs(Math.sin(this.timer*0.3))*6;
+        if (this.x < -80 || this.x > W + 80) this.state = 'hidden';
+        break;
+      case 'popping':
+        if (this.timer < 20) this.y = H - 40 - this.timer * 3;
+        else if (this.timer < 95) this.laughPhase += 0.4;
+        else if (this.timer < 130) this.y += 4;
+        else this.state = 'hidden';
+        break;
+    }
+  }
+  draw() {
+    if (this.state === 'hidden') return;
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    if (this.facing === -1) ctx.scale(-1, 1);
+    const walking = this.state === 'running_in' || this.state === 'running_out';
+    const legOff = walking ? Math.sin(this.timer*0.4)*6 : 0;
+
+    ctx.fillStyle = '#8a5a30';
+    ctx.beginPath();
+    ctx.moveTo(-26,-6);
+    ctx.lineTo(-40,-18 + (walking ? Math.sin(this.timer*0.5)*4 : 0));
+    ctx.lineTo(-28,0);
+    ctx.closePath(); ctx.fill();
+
+    ctx.fillStyle = '#a8703a';
+    ctx.fillRect(-14, 12 + legOff, 7, 14);
+    ctx.fillRect(8, 12 - legOff, 7, 14);
+
+    ctx.fillStyle = '#c88a5a';
+    ctx.beginPath(); ctx.ellipse(0,0,30,18,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#e8c8a8';
+    ctx.beginPath(); ctx.ellipse(2,6,22,10,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#c88a5a';
+    ctx.beginPath(); ctx.arc(24,-12,14,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#8a5a30';
+    ctx.beginPath(); ctx.ellipse(18,-24,8,12,-0.3,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#e8c8a8';
+    ctx.beginPath(); ctx.ellipse(35,-6,10,7,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(41,-8,3,0,Math.PI*2); ctx.fill();
+
+    const laughing = this.state === 'popping' && this.timer > 20 && this.timer < 95;
+    if (laughing) {
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(23,-15); ctx.lineTo(29,-15); ctx.stroke();
+      const open = Math.abs(Math.sin(this.laughPhase))*6 + 3;
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.ellipse(35, 1, 5, open, 0, 0, Math.PI*2); ctx.fill();
+    } else {
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(26,-14,4,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(27,-14,2,0,Math.PI*2); ctx.fill();
+    }
+
+    if (this.state === 'grabbing' || this.state === 'running_out') {
+      ctx.save();
+      ctx.translate(-2, -22);
+      ctx.fillStyle = '#666';
+      ctx.beginPath(); ctx.ellipse(0,0,18,11,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#444';
+      ctx.beginPath(); ctx.arc(14,-3,8,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#e8a020';
+      ctx.beginPath(); ctx.moveTo(21,-3); ctx.lineTo(29,-1); ctx.lineTo(21,2); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(12,-6); ctx.lineTo(16,-2);
+      ctx.moveTo(16,-6); ctx.lineTo(12,-2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+}
+
+const dog = new Dog();
+let ducks = [];
+let particles = [];
+let floaters = [];
+
+// ═══════════════════════════════════════════════════════════════
+//  ЧАСТИЦЫ
+// ═══════════════════════════════════════════════════════════════
+function spawnFeathers(x, y) {
+  for (let i = 0; i < 12; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random()-0.5)*4,
+      vy: (Math.random()-0.5)*4 - 1,
+      life: 40 + Math.random()*20, maxLife: 60,
+      size: 3 + Math.random()*3, color: '#ddd'
+    });
+  }
+}
+function spawnShotParticles(x, y) {
+  for (let i = 0; i < 6; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random()-0.5)*8,
+      vy: (Math.random()-0.5)*8,
+      life: 15, maxLife: 15,
+      size: 2, color: '#ffdd44'
+    });
+  }
+}
+function updateParticles() {
+  for (let i = particles.length-1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.1; p.vx *= 0.98;
+    p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+function drawParticles() {
+  for (const p of particles) {
+    ctx.globalAlpha = p.life / p.maxLife;
+    ctx.fillStyle = p.color || '#ddd';
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+function showFloater(text, x, y, color) {
+  floaters.push({ text, x, y, life: 70, color: color || '#ffe066' });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ПРИЦЕЛ + ВВОД
+// ═══════════════════════════════════════════════════════════════
+const crosshair = { x: W/2, y: H/2, r: 22, pulse: 0 };
+
+function toGameCoords(cx, cy) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (cx - rect.left - offsetX) / scale,
+    y: (cy - rect.top - offsetY) / scale
+  };
+}
+canvas.addEventListener('mousemove', e => {
+  const p = toGameCoords(e.clientX, e.clientY);
+  crosshair.x = p.x; crosshair.y = p.y;
+});
+canvas.addEventListener('mousedown', e => {
+  initAudio();
+  const p = toGameCoords(e.clientX, e.clientY);
+  crosshair.x = p.x; crosshair.y = p.y;
+  if (state === STATE.PLAY) shoot();
+});
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  const p = toGameCoords(t.clientX, t.clientY);
+  crosshair.x = p.x; crosshair.y = p.y;
+}, { passive: false });
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  initAudio();
+  const t = e.touches[0];
+  const p = toGameCoords(t.clientX, t.clientY);
+  crosshair.x = p.x; crosshair.y = p.y;
+  if (state === STATE.PLAY) shoot();
+}, { passive: false });
+
+// ═══════════════════════════════════════════════════════════════
+//  ВЫСТРЕЛ
+// ═══════════════════════════════════════════════════════════════
+function shoot() {
+  if (game.ammo <= 0 || game.reloadTimer > 0) { sfx.miss(); return; }
+  game.ammo--;
+  sfx.shoot();
+  crosshair.pulse = 1;
+  spawnShotParticles(crosshair.x, crosshair.y);
+
+  let hit = false;
+  for (const d of ducks) {
+    if (d.checkHit(crosshair.x, crosshair.y)) {
+      d.hit = true;
+      d.fallVy = -3;
+      spawnFeathers(d.x, d.y);
+      sfx.hit();
+      hit = true;
+      game.score += 100 * game.round;
+      game.ducksKilled++;
+      showFloater('+' + (100*game.round), d.x, d.y);
+      if (dog.state === 'hidden') dog.startFetch(d);
+      break;
+    }
+  }
+  if (!hit) sfx.miss();
+
+  if (game.ammo <= 0) {
+    game.reloadTimer = 45;
+    setTimeout(sfx.reload, 400);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ЛОГИКА
+// ═══════════════════════════════════════════════════════════════
+function onDuckEscaped() {
+  game.lives--;
+  showFloater('-1 ❤️', W/2, H - 100, '#ef4444');
+  beep(300, 0.2, 'sawtooth', 0.2);
+  if (dog.state === 'hidden') dog.startLaugh();
+  if (game.lives <= 0) triggerGameOver();
+}
+
+function triggerGameOver() {
+  state = STATE.GAME_OVER;
+  sfx.over();
+  document.getElementById('finalScore').textContent = game.score;
+  document.getElementById('finalRound').textContent = game.round;
+  setTimeout(() => {
+    showScreen('gameoverScreen');
+  }, 800);
+}
+
+function startGame() {
+  initAudio();
+  state = STATE.PLAY;
+  game.score = 0;
+  game.round = 1;
+  game.lives = START_LIVES;
+  game.ammo = game.maxAmmo;
+  game.reloadTimer = 0;
+  game.spawnTimer = 30;
+  game.spawnInterval = 90;
+  game.duckSpeed = 1.2;
+  game.maxDucksOnScreen = 1;
+  game.ducksKilled = 0;
+  game.ducksNeeded = 6;
+  ducks = []; particles = []; floaters = [];
+  dog.state = 'hidden'; dog.duck = null;
+  showScreen(null);
+}
+
+function nextRound() {
+  game.round++;
+  game.ducksKilled = 0;
+  game.duckSpeed += 0.35;
+  game.ducksNeeded += 2;
+  game.spawnInterval = Math.max(40, game.spawnInterval - 12);
+  game.maxDucksOnScreen = Math.min(2, 1 + Math.floor(game.round / 3));
+  game.ammo = game.maxAmmo;
+  game.reloadTimer = 0;
+  state = STATE.PLAY;
+  ducks = [];
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ОБНОВЛЕНИЕ
+// ═══════════════════════════════════════════════════════════════
+function update() {
+  dog.update();
+  if (crosshair.pulse > 0) crosshair.pulse -= 0.08;
+  updateParticles();
+
+  for (let i = floaters.length-1; i >= 0; i--) {
+    floaters[i].y -= 0.8;
+    floaters[i].life--;
+    if (floaters[i].life <= 0) floaters.splice(i, 1);
+  }
+
+  if (state !== STATE.PLAY) return;
+
+  if (game.reloadTimer > 0) {
+    game.reloadTimer--;
+    if (game.reloadTimer === 0) game.ammo = game.maxAmmo;
+  }
+
+  if (game.reloadTimer === 0) {
+    game.spawnTimer--;
+    if (game.spawnTimer <= 0 && ducks.filter(d => !d.hit).length < game.maxDucksOnScreen) {
+      ducks.push(new Duck());
+      game.spawnTimer = game.spawnInterval;
+    }
+  }
+
+  for (let i = ducks.length-1; i >= 0; i--) {
+    ducks[i].update();
+    if (!ducks[i].alive) ducks.splice(i, 1);
+  }
+
+  if (game.ducksKilled >= game.ducksNeeded) {
+    state = STATE.ROUND_END;
+    beep(800,0.1,'square',0.2);
+    setTimeout(()=>beep(1000,0.1,'square',0.2),100);
+    setTimeout(()=>beep(1300,0.2,'square',0.2),200);
+    setTimeout(() => { if (state === STATE.ROUND_END) nextRound(); }, 1500);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ОТРИСОВКА
+// ═══════════════════════════════════════════════════════════════
+function drawSky() {
+  const g = ctx.createLinearGradient(0, 0, 0, H*0.7);
+  g.addColorStop(0, '#4a90d9');
+  g.addColorStop(0.5, '#87ceeb');
+  g.addColorStop(1, '#c5e8f7');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H*0.7);
+}
+function drawClouds(t) {
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  const clouds = [
+    { x:100, y:80, s:1.0 }, { x:450, y:130, s:0.7 },
+    { x:650, y:60, s:1.2 }, { x:250, y:170, s:0.6 }
+  ];
+  for (const c of clouds) {
+    const x = ((c.x + t*0.15) % (W + 200)) - 100;
+    ctx.beginPath();
+    ctx.arc(x, c.y, 30*c.s, 0, Math.PI*2);
+    ctx.arc(x+30*c.s, c.y-10*c.s, 35*c.s, 0, Math.PI*2);
+    ctx.arc(x+65*c.s, c.y, 28*c.s, 0, Math.PI*2);
+    ctx.arc(x+35*c.s, c.y+8*c.s, 28*c.s, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+function drawGround() {
+  const g = ctx.createLinearGradient(0, H*0.7, 0, H);
+  g.addColorStop(0, '#4a8a3a'); g.addColorStop(1, '#2d5a1e');
+  ctx.fillStyle = g; ctx.fillRect(0, H*0.7, W, H*0.3);
+  ctx.fillStyle = '#2d5016';
+  for (let i = 0; i < 8; i++) {
+    ctx.beginPath();
+    ctx.arc(i*110 + 30, H*0.7+10, 30, Math.PI, 0);
+    ctx.fill();
+  }
+  ctx.strokeStyle = '#3d7028'; ctx.lineWidth = 2;
+  for (let i = 0; i < 60; i++) {
+    const x = i*14, y = H*0.72 + (i%3)*5;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+4, y-8); ctx.stroke();
+  }
+}
+function drawTree() {
+  ctx.fillStyle = '#3a2515';
+  ctx.fillRect(40, H*0.5, 20, H*0.25);
+  ctx.fillStyle = '#2d5016';
+  ctx.beginPath();
+  ctx.arc(50, H*0.48, 45, 0, Math.PI*2);
+  ctx.arc(20, H*0.5, 35, 0, Math.PI*2);
+  ctx.arc(80, H*0.5, 35, 0, Math.PI*2);
+  ctx.fill();
+}
+function drawHUD() {
+  // Счёт
+  ctx.font = 'bold 26px Courier New';
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
+  ctx.textAlign = 'left';
+  ctx.strokeText('SCORE: ' + game.score, 20, 40);
+  ctx.fillText('SCORE: ' + game.score, 20, 40);
+
+  ctx.strokeText('УТОК: ' + game.ducksKilled + ' / ' + game.ducksNeeded, 20, 72);
+  ctx.fillText('УТОК: ' + game.ducksKilled + ' / ' + game.ducksNeeded, 20, 72);
+
+  // Жизни (сердечки)
+  const heartsX = 20, heartsY = 92;
+  for (let i = 0; i < game.lives; i++) {
+    const x = heartsX + i * 26;
+    ctx.font = '22px Arial';
+    ctx.fillText('❤️', x, heartsY + 20);
+  }
+
+  // Раунд
+  ctx.textAlign = 'right';
+  ctx.strokeText('ROUND ' + game.round, W-30, 40);
+  ctx.fillText('ROUND ' + game.round, W-30, 40);
+
+  // Патроны
+  const startX = W - 30, startY = 80;
+  for (let i = 0; i < game.maxAmmo; i++) {
+    const x = startX - i*18;
+    ctx.fillStyle = i < game.ammo ? '#e8a020' : '#555';
+    ctx.fillRect(x-5, startY-10, 10, 20);
+    ctx.fillStyle = i < game.ammo ? '#c88010' : '#333';
+    ctx.fillRect(x-5, startY+5, 10, 5);
+  }
+
+  // Текст перезарядки
+  if (game.reloadTimer > 0) {
+    ctx.textAlign = 'right';
+    ctx.font = 'bold 16px Courier New';
+    ctx.fillStyle = '#f87171';
+    ctx.fillText('ПЕРЕЗАРЯДКА...', W-30, 125);
+  }
+}
+function drawCrosshair() {
+  const { x, y, r, pulse } = crosshair;
+  const rr = r * (1 + pulse * 0.4);
+  ctx.strokeStyle = '#ff3333'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(x, y, rr, 0, Math.PI*2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x-rr-8, y); ctx.lineTo(x-rr+4, y);
+  ctx.moveTo(x+rr-4, y); ctx.lineTo(x+rr+8, y);
+  ctx.moveTo(x, y-rr-8); ctx.lineTo(x, y-rr+4);
+  ctx.moveTo(x, y+rr-4); ctx.lineTo(x, y+rr+8);
+  ctx.stroke();
+  ctx.fillStyle = '#ff3333';
+  ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI*2); ctx.fill();
+}
+function drawFloaters() {
+  ctx.textAlign = 'center';
+  for (const f of floaters) {
+    ctx.globalAlpha = Math.min(1, f.life / 30);
+    ctx.font = 'bold 22px Courier New';
+    ctx.fillStyle = f.color;
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
+    ctx.strokeText(f.text, f.x, f.y);
+    ctx.fillText(f.text, f.x, f.y);
+  }
+  ctx.globalAlpha = 1;
+}
+function drawRoundEnd() {
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 56px Courier New';
+  ctx.fillStyle = '#4ade80'; ctx.strokeStyle = '#000'; ctx.lineWidth = 8;
+  ctx.strokeText('РАУНД ПРОЙДЕН!', W/2, H/2 - 20);
+  ctx.fillText('РАУНД ПРОЙДЕН!', W/2, H/2 - 20);
+  ctx.font = 'bold 32px Courier New';
+  ctx.fillStyle = '#ffe066';
+  ctx.strokeText('Счёт: ' + game.score, W/2, H/2 + 40);
+  ctx.fillText('Счёт: ' + game.score, W/2, H/2 + 40);
+  ctx.font = 'bold 22px Courier New';
+  ctx.fillStyle = '#fff';
+  ctx.strokeText('Следующий раунд ' + (game.round + 1) + '...', W/2, H/2 + 90);
+  ctx.fillText('Следующий раунд ' + (game.round + 1) + '...', W/2, H/2 + 90);
+}
+
+let time = 0;
+function draw() {
+  time++;
+  ctx.save();
+
+  drawSky();
+  drawClouds(time);
+  drawTree();
+  drawGround();
+
+  for (const d of ducks) d.draw();
+  dog.draw();
+  drawParticles();
+
+  if (state === STATE.PLAY || state === STATE.ROUND_END || state === STATE.GAME_OVER) {
+    drawHUD();
+  }
+
+  drawFloaters();
+
+  if (state === STATE.ROUND_END) drawRoundEnd();
+  if (state === STATE.PLAY) drawCrosshair();
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ГЛАВНЫЙ ЦИКЛ
+// ═══════════════════════════════════════════════════════════════
+function loop() {
+  update();
+  ctx.save();
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(scale, scale);
+  ctx.clearRect(0, 0, W, H);
+  draw();
+  ctx.restore();
+
+  if (offsetX > 0 || offsetY > 0) {
+    ctx.fillStyle = '#0a0a1a';
+    if (offsetX > 0) {
+      ctx.fillRect(0, 0, offsetX, window.innerHeight);
+      ctx.fillRect(window.innerWidth - offsetX, 0, offsetX, window.innerHeight);
+    }
+    if (offsetY > 0) {
+      ctx.fillRect(0, 0, window.innerWidth, offsetY);
+      ctx.fillRect(0, window.innerHeight - offsetY, window.innerWidth, offsetY);
+    }
+  }
+  requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  UI / ЭКРАНЫ
+// ═══════════════════════════════════════════════════════════════
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('show'));
+  if (name) document.getElementById(name).classList.add('show');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  БОНУСЫ
+// ═══════════════════════════════════════════════════════════════
+const BONUSES = [
+  { id: 'join',     icon:'📢', label:'Подписаться на сообщество', reward:1,
+    vk: () => vkSend('VKWebAppJoinGroup', { group_id: VK_GROUP_ID }) },
+  { id: 'notify',   icon:'🔔', label:'Разрешить сообщения',        reward:1,
+    vk: () => vkSend('VKWebAppAllowMessagesFromGroup', { group_id: VK_GROUP_ID }) },
+  { id: 'favorite', icon:'⭐', label:'Добавить в избранное',        reward:1,
+    vk: () => vkSend('VKWebAppAddToFavorites') },
+  { id: 'share',    icon:'📤', label:'Поделиться на стену',        reward:2,
+    vk: () => vkSend('VKWebAppShowWallPostBox', {
+      message: '🦆 Играю в Охоту на уток! Попробуй и ты — попадёшь по всем!',
+      attachments: 'https://vk.com/app' + VK_APP_ID
+    }) },
+  { id: 'like',     icon:'❤️', label:'Поставить лайк посту',       reward:1,
+    vk: () => openVkLink('https://vk.com/wall-' + VK_GROUP_ID + '_' + VK_POST_ID) },
+  { id: 'comment',  icon:'💬', label:'Оставить комментарий',        reward:1,
+    vk: () => openVkLink('https://vk.com/wall-' + VK_GROUP_ID + '_' + VK_POST_ID) }
+];
+
+async function openVkLink(url) {
+  try {
+    if (vkReady) await vkSend('VKWebAppOpenLink', { link: url });
+    else window.open(url, '_blank');
+  } catch (e) {
+    window.open(url, '_blank');
+  }
+}
+
+// Кэш полученных бонусов
+const claimed = {};
+
+async function loadClaimed() {
+  for (const b of BONUSES) {
+    const v = await storageGet('bonus_' + b.id);
+    claimed[b.id] = v === '1';
+  }
+}
+
+async function renderBonusList() {
+  const el = document.getElementById('bonusList');
+  el.innerHTML = '';
+  for (const b of BONUSES) {
+    const isClaimed = !!claimed[b.id];
+    const div = document.createElement('div');
+    div.className = 'bonus-item' + (isClaimed ? ' claimed' : '');
+    div.innerHTML =
+      '<div class="icon">' + b.icon + '</div>' +
+      '<div class="info">' +
+        '<div class="label">' + b.label + '</div>' +
+        '<div class="reward">+' + b.reward + ' ❤️ жизн' + (b.reward === 1 ? 'ь' : 'и') + '</div>' +
+      '</div>' +
+      '<button ' + (isClaimed ? 'disabled' : '') + ' data-bonus="' + b.id + '">' +
+        (isClaimed ? '✓ Получено' : 'Получить') +
+      '</button>';
+    el.appendChild(div);
+  }
+  el.querySelectorAll('button[data-bonus]').forEach(btn => {
+    btn.addEventListener('click', () => claimBonus(btn.dataset.bonus));
+  });
+}
+
+async function claimBonus(id) {
+  const b = BONUSES.find(x => x.id === id);
+  if (!b || claimed[id]) return;
+  const loader = document.getElementById('bonusLoader');
+  loader.textContent = '⏳ Ожидание действия...';
+
+  let ok = false;
+  try {
+    await b.vk();
+    ok = true;
+  } catch (e) {
+    console.log('Bonus error:', e);
+    // для тестирования вне VK всё равно даём бонус
+    ok = true;
+  }
+
+  if (ok) {
+    claimed[id] = true;
+    await storageSet('bonus_' + id, '1');
+
+    // Начисляем жизни
+    if (state === STATE.GAME_OVER) {
+      // если игра окончена — даём бонус и автоматически запускаем новую игру с доп. жизнями
+      startGameWithBonus(b.reward);
+    } else if (state === STATE.PLAY) {
+      game.lives += b.reward;
+      for (let i = 0; i < b.reward; i++) showFloater('+1 ❤️', W/2 + i*40 - 20, H - 100, '#4ade80');
+    } else {
+      // в меню — просто запоминаем, начислим при старте
+      pendingBonusLives += b.reward;
+    }
+    sfx.life();
+    loader.textContent = '✅ Получено +' + b.reward + ' ❤️';
+    setTimeout(() => { loader.textContent = ''; }, 2000);
+    renderBonusList();
+  } else {
+    loader.textContent = '❌ Не удалось';
+    setTimeout(() => { loader.textContent = ''; }, 2000);
+  }
+}
+
+let pendingBonusLives = 0;
+
+function startGameWithBonus(extraLives) {
+  startGame();
+  game.lives = START_LIVES + extraLives;
+  for (let i = 0; i < extraLives; i++) showFloater('+1 ❤️', W/2 + i*40 - 20, H - 100, '#4ade80');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ОБРАБОТКА КНОПОК UI
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('click', async e => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+
+  if (action === 'start' || action === 'restart') {
+    startGame();
+    if (pendingBonusLives > 0) {
+      game.lives = START_LIVES + pendingBonusLives;
+      pendingBonusLives = 0;
+    }
+    showScreen(null);
+  }
+  else if (action === 'bonuses') {
+    await renderBonusList();
+    showScreen('bonusScreen');
+  }
+  else if (action === 'close-bonus') {
+    // возвращаемся туда, откуда пришли
+    if (state === STATE.GAME_OVER) showScreen('gameoverScreen');
+    else showScreen('menuScreen');
+  }
+  else if (action === 'menu') {
+    state = STATE.MENU;
+    ducks = []; particles = []; floaters = [];
+    dog.state = 'hidden'; dog.duck = null;
+    showScreen('menuScreen');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  СТАРТ
+// ═══════════════════════════════════════════════════════════════
+(async () => {
+  await loadClaimed();
+  showScreen('menuScreen');
+  loop();
+})();
+</script>
+</body>
+</html>
