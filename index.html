@@ -394,6 +394,56 @@ document.getElementById('musicBtn').addEventListener('click', () => {
   beep(700, 0.06, 'square', 0.15);
 });
 
+ // ═══════════════════════════════════════════════════════════════
+//  АНАЛИТИКА (сохраняется в VK Storage)
+// ═══════════════════════════════════════════════════════════════
+const stats = {
+  games: 0,
+  shots: 0,
+  hits: 0,
+  misses: 0,
+  escaped: 0,
+  rounds: 0,
+  bestScore: 0,
+  bestRound: 0,
+  bestAccuracy: 0
+};
+
+let topScores = [];
+
+async function loadStats() {
+  const raw = await storageGet('stats');
+  if (raw) {
+    try { Object.assign(stats, JSON.parse(raw)); } catch(e) {}
+  }
+  const topRaw = await storageGet('top_scores');
+  if (topRaw) {
+    try { topScores = JSON.parse(topRaw); } catch(e) {}
+  }
+}
+
+async function saveStats() {
+  await storageSet('stats', JSON.stringify(stats));
+}
+
+async function addTopScore(score, round) {
+  if (score <= 0) return;
+  topScores.push({ score, round, date: Date.now() });
+  topScores.sort((a, b) => b.score - a.score);
+  topScores = topScores.slice(0, 10);
+  await storageSet('top_scores', JSON.stringify(topScores));
+}
+
+async function resetStats() {
+  Object.assign(stats, {
+    games: 0, shots: 0, hits: 0, misses: 0,
+    escaped: 0, rounds: 0,
+    bestScore: 0, bestRound: 0, bestAccuracy: 0
+  });
+  topScores = [];
+  await storageSet('stats', JSON.stringify(stats));
+  await storageSet('top_scores', '[]');
+}
 // ═══════════════════════════════════════════════════════════════
 //  СОСТОЯНИЕ
 // ═══════════════════════════════════════════════════════════════
@@ -728,7 +778,8 @@ canvas.addEventListener('touchstart', e => {
 // ═══════════════════════════════════════════════════════════════
 function shoot() {
   if (game.ammo <= 0 || game.reloadTimer > 0) { sfx.miss(); return; }
-  game.ammo--;
+    game.ammo--;
+  stats.shots++;     // ← добавил
   sfx.shoot();
   crosshair.pulse = 1;
   spawnShotParticles(crosshair.x, crosshair.y);
@@ -743,16 +794,18 @@ function shoot() {
       hit = true;
       game.score += 100 * game.round;
       game.ducksKilled++;
-      showFloater('+' + (100*game.round), d.x, d.y);
+            showFloater('+' + (100*game.round), d.x, d.y);
+      stats.hits++;                                    // ← добавил
       if (dog.state === 'hidden') dog.startFetch(d);
       break;
     }
   }
-  if (!hit) sfx.miss();
+    if (!hit) { stats.misses++; sfx.miss(); }        // ← добавил stats.misses++
+  saveStats();                                     // ← добавил
 
   if (game.ammo <= 0) {
-    game.reloadTimer = 180;
-    setTimeout(sfx.reload, 1600);
+    game.reloadTimer = 90;
+    setTimeout(sfx.reload, 800);
   }
 }
 
@@ -760,6 +813,7 @@ function shoot() {
 //  ЛОГИКА
 // ═══════════════════════════════════════════════════════════════
 function onDuckEscaped() {
+  stats.escaped++;        // ← добавил
   game.lives--;
   showFloater('-1 ❤️', W/2, H - 100, '#ef4444');
   beep(300, 0.2, 'sawtooth', 0.2);
@@ -770,6 +824,15 @@ function onDuckEscaped() {
 function triggerGameOver() {
   state = STATE.GAME_OVER;
   sfx.over();
+
+  // ── Обновляем рекорды ──
+  if (game.score > stats.bestScore) stats.bestScore = game.score;
+  if (game.round > stats.bestRound) stats.bestRound = game.round;
+  const acc = stats.shots > 0 ? Math.round(stats.hits / stats.shots * 100) : 0;
+  if (acc > stats.bestAccuracy) stats.bestAccuracy = acc;
+  addTopScore(game.score, game.round);
+  saveStats();
+  // ─────────────────────
   document.getElementById('finalScore').textContent = game.score;
   document.getElementById('finalRound').textContent = game.round;
   setTimeout(() => {
@@ -794,9 +857,12 @@ function startGame() {
   ducks = []; particles = []; floaters = [];
   dog.state = 'hidden'; dog.duck = null;
   showScreen(null);
+   stats.games++;
+  saveStats();
 }
 
 function nextRound() {
+  stats.rounds++;        // ← добавил
   game.round++;
   game.ducksKilled = 0;
   game.duckSpeed += 0.35;
