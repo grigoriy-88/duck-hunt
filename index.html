@@ -346,29 +346,31 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const W = 800, H = 600;
 let scale = 1, offsetX = 0, offsetY = 0;
+ let currentDpr = 1;   // ⬅ добавляем
 
 function resize() {
-  // Используем visualViewport, если доступен — точнее на iPhone
-  const vv = window.visualViewport;
-  const winW = vv ? vv.width : window.innerWidth;
-  const winH = vv ? vv.height : window.innerHeight;
+  const winW = window.innerWidth;
+  const winH = window.innerHeight;
 
   scale = Math.min(winW / W, winH / H);
 
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-  const dpr = isMobile ? Math.min(devicePixelRatio, 1.5) : devicePixelRatio;
+  currentDpr = isMobile ? Math.min(window.devicePixelRatio || 1, 1.5) : (window.devicePixelRatio || 1);
 
-  canvas.width = Math.floor(winW * dpr);
-  canvas.height = Math.floor(winH * dpr);
+  canvas.width = Math.floor(winW * currentDpr);
+  canvas.height = Math.floor(winH * currentDpr);
   canvas.style.width = winW + 'px';
   canvas.style.height = winH + 'px';
   canvas.style.position = 'fixed';
   canvas.style.top = '0';
   canvas.style.left = '0';
 
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.setTransform(currentDpr, 0, 0, currentDpr, 0, 0);
+
   offsetX = (winW - W * scale) / 2;
   offsetY = (winH - H * scale) / 2;
+
+  console.log('resize:', { winW, winH, currentDpr, scale, offsetX, offsetY });
 }
  
 // Все события, которые могут изменить размер экрана
@@ -1233,22 +1235,25 @@ function draw() {
 function loop() {
   update();
   ctx.save();
-  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  ctx.setTransform(currentDpr, 0, 0, currentDpr, 0, 0);   // ⬅ используем currentDpr
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
   ctx.clearRect(0, 0, W, H);
   draw();
   ctx.restore();
 
+  // Чёрные полосы (letterbox) вокруг игры — тоже через currentDpr
   if (offsetX > 0 || offsetY > 0) {
     ctx.fillStyle = '#0a0a1a';
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
     if (offsetX > 0) {
-      ctx.fillRect(0, 0, offsetX, window.innerHeight);
-      ctx.fillRect(window.innerWidth - offsetX, 0, offsetX, window.innerHeight);
+      ctx.fillRect(0, 0, offsetX, vh);
+      ctx.fillRect(vw - offsetX, 0, offsetX, vh);
     }
     if (offsetY > 0) {
-      ctx.fillRect(0, 0, window.innerWidth, offsetY);
-      ctx.fillRect(0, window.innerHeight - offsetY, window.innerWidth, offsetY);
+      ctx.fillRect(0, 0, vw, offsetY);
+      ctx.fillRect(0, vh - offsetY, vw, offsetY);
     }
   }
   requestAnimationFrame(loop);
