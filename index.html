@@ -248,7 +248,12 @@
     <button class="btn" data-action="start">▶ Играть</button>
     <button class="btn secondary" data-action="bonuses">🎁 Получить жизни</button>
    <button class="btn ghost" data-action="leader">🏆 Рекорды</button>
+   <button class="btn ghost" data-action="exit-app" style="min-width:200px;">🚪 Выйти</button>
     <div class="hint" id="vkGreeting"></div>
+   <button id="quickExit" style="display:none;position:absolute;top:8px;right:8px;
+  z-index:20;width:36px;height:36px;border-radius:50%;border:none;
+  background:rgba(0,0,0,0.6);color:#fff;font-size:18px;cursor:pointer;
+  pointer-events:auto;font-family:inherit;">✕</button>
   </div>
 
   <!-- КОНЕЦ ИГРЫ -->
@@ -260,6 +265,7 @@
     <button class="btn" data-action="restart">🔄 Играть снова</button>
     <button class="btn secondary" data-action="bonuses">🎁 Получить жизни</button>
    <button class="btn ghost" data-action="leader">🏆 Рекорды</button>
+   <button class="btn ghost" data-action="exit-app">🚪 Выйти</button>
     <button class="btn ghost" data-action="menu">🏠 В меню</button>
   </div>
 
@@ -569,10 +575,23 @@ if (window.vkBridge) {
   vkBridge.subscribe(e => {
     const type = e && e.detail && e.detail.type;
     if (!type) return;
+
     if (type === 'VKWebAppViewHide') {
       Music.pause();
     } else if (type === 'VKWebAppViewRestore') {
       Music.resume();
+
+      // 🎯 Если игра была в процессе — вернём в меню
+      if (state === STATE.PLAY || state === STATE.ROUND_END || state === STATE.GAME_OVER) {
+        state = STATE.MENU;
+        ducks = [];
+        particles = [];
+        floaters = [];
+        dog.state = 'hidden';
+        dog.duck = null;
+        dog.timer = 0;
+        showScreen('menuScreen');
+      }
     }
   });
 }
@@ -1353,6 +1372,12 @@ function loop() {
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('show'));
   if (name) document.getElementById(name).classList.add('show');
+
+  // Показываем мини-кнопку «✕» только во время игры
+  const q = document.getElementById('quickExit');
+  if (q) {
+    q.style.display = (state === STATE.PLAY && !name) ? 'block' : 'none';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1595,6 +1620,16 @@ document.addEventListener('click', async e => {
     dog.state = 'hidden'; dog.duck = null; dog.timer = 0;
     showScreen('menuScreen');
   }
+       else if (action === 'exit-app') {
+    if (!confirm('Закрыть игру?')) return;
+    Music.stop();
+    try {
+      await vkSend('VKWebAppClose', { status: 'success' });
+    } catch (e) {
+      // Если метод не сработал (браузер) — просто уходим в меню
+      showScreen('menuScreen');
+    }
+  }
    else if (action === 'leader') {
     await renderLeader();
     showScreen('leaderScreen');
@@ -1609,6 +1644,22 @@ document.addEventListener('click', async e => {
       await renderLeader();
     }
   }
+});
+ // ═══════════════════════════════════════════════════════════════
+//  МИНИ-КНОПКА «✕» — выход в меню во время игры
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('click', async e => {
+  if (e.target.id !== 'quickExit') return;
+  if (!confirm('Выйти в меню? Прогресс партии будет потерян.')) return;
+
+  state = STATE.MENU;
+  ducks = [];
+  particles = [];
+  floaters = [];
+  dog.state = 'hidden';
+  dog.duck = null;
+  dog.timer = 0;
+  showScreen('menuScreen');
 });
 
 // ═══════════════════════════════════════════════════════════════
