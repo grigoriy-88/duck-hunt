@@ -488,7 +488,17 @@ const Music = {
     this.running = false;
     if (this.timer) { clearInterval(this.timer); this.timer = null; }
   },
+  pause() {
+    if (!this.running) return;
+    this.running = false;
+    if (this.timer) { clearInterval(this.timer); this.timer = null; }
+  },
 
+  resume() {
+    if (!this.enabled) return;
+    if (this.running) return;
+    this.start();
+  },
   tick() {
     if (this.timer) clearInterval(this.timer);
     const stepDur = (60 / this.bpm) / 4; // 16-я нота
@@ -550,7 +560,35 @@ document.getElementById('musicBtn').addEventListener('click', () => {
   Music.toggle();
   beep(700, 0.06, 'square', 0.15);
 });
+// ═══════════════════════════════════════════════════════════════
+//  ПАУЗА МУЗЫКИ ПРИ СВОРАЧИВАНИИ
+// ═══════════════════════════════════════════════════════════════
 
+// 1. События VK Bridge (сворачивание приложения)
+if (window.vkBridge) {
+  vkBridge.subscribe(e => {
+    const type = e && e.detail && e.detail.type;
+    if (!type) return;
+    if (type === 'VKWebAppViewHide') {
+      Music.pause();
+    } else if (type === 'VKWebAppViewRestore') {
+      Music.resume();
+    }
+  });
+}
+
+// 2. Page Visibility API (работает в браузере и WebView)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    Music.pause();
+  } else {
+    Music.resume();
+  }
+});
+
+// 3. Дополнительно — окно потеряло фокус (браузер)
+window.addEventListener('blur', () => Music.pause());
+window.addEventListener('focus', () => Music.resume());
  // ═══════════════════════════════════════════════════════════════
 //  АНАЛИТИКА (сохраняется в VK Storage)
 // ═══════════════════════════════════════════════════════════════
@@ -856,7 +894,8 @@ const dog = new Dog();
 let ducks = [];
 let particles = [];
 let floaters = [];
-
+let lifeLostFlash = 0;
+ 
 // ═══════════════════════════════════════════════════════════════
 //  ЧАСТИЦЫ
 // ═══════════════════════════════════════════════════════════════
@@ -899,8 +938,13 @@ function drawParticles() {
   }
   ctx.globalAlpha = 1;
 }
-function showFloater(text, x, y, color) {
-  floaters.push({ text, x, y, life: 70, color: color || '#ffe066' });
+function showFloater(text, x, y, color, size) {
+  floaters.push({
+    text, x, y,
+    life: 70,
+    color: color || '#ffe066',
+    size: size || 22
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -980,11 +1024,22 @@ function shoot() {
 //  ЛОГИКА
 // ═══════════════════════════════════════════════════════════════
 function onDuckEscaped() {
-  stats.escaped++;        // ← добавил
+  stats.escaped++;
   game.lives--;
-  showFloater('-1 ❤️', W/2, H - 100, '#ef4444');
-  beep(300, 0.2, 'sawtooth', 0.2);
+
+  // 🎨 Красная вспышка по всему экрану
+  lifeLostFlash = 1;
+
+  // 💔 Крупная надпись в центре
+  showFloater('− 1 ЖИЗНЬ', W / 2, H / 2, '#ef4444', 42);
+
+  // 🔊 Двойной неприятный звук
+  beep(200, 0.15, 'sawtooth', 0.3);
+  setTimeout(() => beep(150, 0.25, 'sawtooth', 0.25), 120);
+
+  // 🐕 Собака смеётся
   if (dog.state === 'hidden') dog.startLaugh();
+
   if (game.lives <= 0) triggerGameOver();
 }
 
@@ -1051,6 +1106,8 @@ function nextRound() {
 // ═══════════════════════════════════════════════════════════════
 function update() {
   dog.update();
+   if (lifeLostFlash > 0) lifeLostFlash -= 0.02 * (typeof dt !== 'undefined' ? dt : 1);
+  if (lifeLostFlash < 0) lifeLostFlash = 0;
   if (crosshair.pulse > 0) crosshair.pulse -= 0.08;
   updateParticles();
 
@@ -1201,9 +1258,11 @@ function drawFloaters() {
   ctx.textAlign = 'center';
   for (const f of floaters) {
     ctx.globalAlpha = Math.min(1, f.life / 30);
-    ctx.font = 'bold 22px Courier New';
+    const sz = f.size || 22;
+    ctx.font = 'bold ' + sz + 'px Courier New';
     ctx.fillStyle = f.color;
-    ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = Math.max(3, sz / 8);
     ctx.strokeText(f.text, f.x, f.y);
     ctx.fillText(f.text, f.x, f.y);
   }
@@ -1246,6 +1305,11 @@ function draw() {
   }
 
   drawFloaters();
+   // Красная вспышка при потере жизни
+  if (lifeLostFlash > 0) {
+    ctx.fillStyle = 'rgba(220, 38, 38, ' + (lifeLostFlash * 0.35) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
 
   if (state === STATE.ROUND_END) drawRoundEnd();
   if (state === STATE.PLAY) drawCrosshair();
@@ -1497,6 +1561,7 @@ function startGameWithBonus(extraLives) {
   startGame();
   game.lives = START_LIVES + extraLives;
   for (let i = 0; i < extraLives; i++) showFloater('+1 ❤️', W/2 + i*40 - 20, H - 100, '#4ade80');
+   lifeLostFlash = 0;
 }
 
 // ═══════════════════════════════════════════════════════════════
