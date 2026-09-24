@@ -1194,11 +1194,21 @@ const BONUSES = [
     vk: () => vkSend('VKWebAppAllowMessagesFromGroup', { group_id: VK_GROUP_ID }) },
   { id: 'favorite', icon:'⭐', label:'Добавить в избранное',        reward:1,
     vk: () => vkSend('VKWebAppAddToFavorites') },
-  { id: 'share',    icon:'📤', label:'Поделиться на стену',        reward:2,
-    vk: () => vkSend('VKWebAppShowWallPostBox', {
-      message: '🦆 Играю в Охоту на уток! Попробуй и ты — попадёшь по всем!',
-      attachments: 'https://vk.com/app' + VK_APP_ID
-    }) },
+  { id: 'story', icon: '📸', label: 'Опубликовать историю', reward: 2,
+  vk: () => {
+    // Генерируем картинку с текущим результатом
+    const dataUrl = generateStoryImage();
+    return vkSend('VKWebAppShowStoryBox', {
+      background_type: 'image',
+      blob: dataUrl,
+      attachment: {
+        text: 'Играть',
+        type: 'url',
+        url: 'https://vk.com/app' + VK_APP_ID
+      }
+    });
+  }
+},
   { id: 'like',     icon:'❤️', label:'Поставить лайк посту',       reward:1,
     vk: () => openVkLink('https://vk.com/wall-' + VK_GROUP_ID + '_' + VK_POST_ID) },
   { id: 'comment',  icon:'💬', label:'Оставить комментарий',        reward:1,
@@ -1250,6 +1260,54 @@ async function renderLeader() {
       '</div>';
     }).join('');
   }
+}
+ function generateStoryImage() {
+  const c = document.createElement('canvas');
+  c.width = 1080;
+  c.height = 1920;
+  const g = c.getContext('2d');
+
+  // Фон — небо
+  const grad = g.createLinearGradient(0, 0, 0, 1920);
+  grad.addColorStop(0, '#4a90d9');
+  grad.addColorStop(1, '#c5e8f7');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 1080, 1920);
+
+  // Земля
+  g.fillStyle = '#4a8a3a';
+  g.fillRect(0, 1400, 1080, 520);
+
+  // Логотип
+  g.font = 'bold 110px "Courier New", monospace';
+  g.fillStyle = '#ffe066';
+  g.strokeStyle = '#000';
+  g.lineWidth = 12;
+  g.textAlign = 'center';
+  g.strokeText('🦆 ОХОТА НА УТОК', 540, 380);
+  g.fillText('🦆 ОХОТА НА УТОК', 540, 380);
+
+  // Счёт и раунд
+  g.font = 'bold 80px "Courier New", monospace';
+  g.fillStyle = '#fff';
+  g.strokeStyle = '#000';
+  g.lineWidth = 8;
+  const scoreText = 'СЧЁТ: ' + game.score;
+  const roundText = 'РАУНД: ' + game.round;
+  g.strokeText(scoreText, 540, 600);
+  g.fillText(scoreText, 540, 600);
+  g.strokeText(roundText, 540, 720);
+  g.fillText(roundText, 540, 720);
+
+  // Призыв
+  g.font = 'bold 60px "Courier New", monospace';
+  g.fillStyle = '#4ade80';
+  g.strokeStyle = '#000';
+  g.lineWidth = 6;
+  g.strokeText('Попробуй побить мой рекорд!', 540, 900);
+  g.fillText('Попробуй побить мой рекорд!', 540, 900);
+
+  return c.toDataURL('image/png');
 }
  
 async function renderBonusList() {
