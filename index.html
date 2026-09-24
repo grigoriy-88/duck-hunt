@@ -31,8 +31,19 @@
   touch-action: none;
 }
 
-  #ui { position:fixed; inset:0; pointer-events:none; z-index:10; }
-  .screen {
+#ui {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 800px;
+  height: 600px;
+  pointer-events: none;
+  z-index: 10;
+  transform-origin: 0 0;
+  /* позиция, размер и scale задаются из resize() через JS */
+}
+ 
+ .screen {
     position:absolute; inset:0; display:none;
     flex-direction:column; align-items:center; justify-content:center;
     background: rgba(5,10,25,0.88);
@@ -44,47 +55,34 @@
   .screen.show { display:flex; }
 
   .screen h1 {
-    font-size: clamp(28px, 6vw, 56px);
-    color:#ffe066;
-    text-shadow: 0 4px 0 #000, 0 0 20px rgba(255,224,102,0.5);
-    margin-bottom: 18px;
-    letter-spacing: 2px;
-  }
-  .screen h2 {
-    font-size: clamp(18px, 3vw, 26px);
-    color:#4ade80;
-    margin-bottom: 12px;
-  }
-  .screen p {
-    font-size: clamp(14px, 2.2vw, 18px);
-    color:#cbd5e1;
-    margin: 6px 0;
-    line-height: 1.5;
-  }
-  .screen .big {
-    font-size: clamp(36px, 8vw, 64px);
-    color:#fff;
-    font-weight: bold;
-    margin: 10px 0 20px;
-    text-shadow: 0 0 20px #4ade80;
-  }
-  .btn {
-    background: linear-gradient(180deg, #4ade80 0%, #22a355 100%);
-    color:#052e16;
-    border: none;
-    padding: 14px 32px;
-    font-size: clamp(16px, 2.5vw, 20px);
-    font-family: inherit;
-    font-weight: bold;
-    letter-spacing: 1px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin: 8px;
-    box-shadow: 0 4px 0 #166534, 0 6px 20px rgba(0,0,0,0.5);
-    transition: transform 0.05s, box-shadow 0.05s;
-    text-transform: uppercase;
-    min-width: 260px;
-  }
+  font-size: 44px;
+  color:#ffe066;
+  text-shadow: 0 4px 0 #000, 0 0 20px rgba(255,224,102,0.5);
+  margin-bottom: 18px;
+  letter-spacing: 2px;
+}
+.screen h2 {
+  font-size: 22px;
+  color:#4ade80;
+  margin-bottom: 12px;
+}
+.screen p {
+  font-size: 17px;
+  color:#cbd5e1;
+  margin: 6px 0;
+  line-height: 1.5;
+}
+.screen .big {
+  font-size: 52px;
+  color:#fff;
+  font-weight: bold;
+  margin: 10px 0 20px;
+  text-shadow: 0 0 20px #4ade80;
+}
+.btn {
+  /* остальные свойства не трогай, меняем только font-size */
+  font-size: 18px;
+}
   .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #166534; }
   .btn.secondary {
     background: linear-gradient(180deg, #facc15 0%, #d97706 100%);
@@ -371,6 +369,15 @@ function resize() {
   offsetY = (winH - H * scale) / 2;
 
   console.log('resize:', { winW, winH, currentDpr, scale, offsetX, offsetY });
+   // Синхронизируем UI-оверлей с областью игры
+  const ui = document.getElementById('ui');
+  if (ui) {
+    ui.style.left = offsetX + 'px';
+    ui.style.top = offsetY + 'px';
+    ui.style.width = W + 'px';
+    ui.style.height = H + 'px';
+    ui.style.transform = 'scale(' + scale + ')';
+  }
 }
  
 // Все события, которые могут изменить размер экрана
