@@ -113,7 +113,7 @@
   .top-item .date { color:#64748b; font-size:11px; }
 
   .hint { font-size:12px; color:#94a3b8; margin-top:6px; max-width:480px; }
-  .loader { color:#94a3b8; font-size:12px; margin-top:6px; }
+  .loader { color:#94a3b8; font-size:12px; margin-top:6px; min-height:18px; }
 
   .music-btn {
     position:fixed; bottom:20px; right:20px; z-index:50;
@@ -206,7 +206,6 @@ const VK_POST_ID  = 7622;
 const VK_APP_ID   = 54787293;
 const START_LIVES = 3;
 
-// ═══ Перехват ошибок ═══
 window.addEventListener('error', e => {
   console.error('[GAME ERROR]', e.error || e.message, e.filename, e.lineno);
 });
@@ -223,12 +222,10 @@ function withTimeout(promise, ms = 2500) {
     new Promise((_, rej) => setTimeout(() => rej(new Error('vk timeout')), ms))
   ]);
 }
-
 async function vkSend(method, params) {
   if (!vkReady || !window.vkBridge) throw new Error('VK Bridge not ready');
   return withTimeout(vkBridge.send(method, params || {}), 2500);
 }
-
 async function storageGet(key) {
   try {
     if (vkReady) {
@@ -244,7 +241,6 @@ async function storageSet(key, value) {
   } catch (e) {}
   localStorage.setItem('dh_' + key, String(value));
 }
-
 function tryInitVk(attempts = 0) {
   if (window.vkBridge) {
     vkBridge.send('VKWebAppInit').then(() => { vkReady = true; console.log('✅ VK init'); }).catch(()=>{});
@@ -272,20 +268,16 @@ function resize() {
   const vv = window.visualViewport;
   const winW = vv ? vv.width : window.innerWidth;
   const winH = vv ? vv.height : window.innerHeight;
-
   scale = Math.min(winW / W, winH / H);
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
   currentDpr = isMobile ? Math.min(window.devicePixelRatio || 1, 1.5) : (window.devicePixelRatio || 1);
-
   canvas.width = Math.floor(winW * currentDpr);
   canvas.height = Math.floor(winH * currentDpr);
   canvas.style.width = winW + 'px';
   canvas.style.height = winH + 'px';
-
   ctx.setTransform(currentDpr, 0, 0, currentDpr, 0, 0);
   offsetX = (winW - W * scale) / 2;
   offsetY = (winH - H * scale) / 2;
-
   const ui = document.getElementById('ui');
   if (ui) {
     ui.style.left = offsetX + 'px';
@@ -295,7 +287,6 @@ function resize() {
     ui.style.transform = 'scale(' + scale + ')';
   }
 }
-
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', () => {
   setTimeout(resize, 100); setTimeout(resize, 300); setTimeout(resize, 600);
@@ -335,7 +326,7 @@ const sfx = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-//  ФОНОВАЯ МУЗЫКА
+//  МУЗЫКА
 // ═══════════════════════════════════════════════════════════════
 const Music = {
   enabled: true, running: false, timer: null, step: 0, nextTime: 0, bpm: 132,
@@ -399,7 +390,6 @@ document.getElementById('musicBtn').addEventListener('click', () => {
   initAudio(); Music.toggle(); beep(700, 0.06, 'square', 0.15);
 });
 
-// VK events — пауза музыки и сброс в меню при возврате
 if (window.vkBridge) {
   vkBridge.subscribe(e => {
     const type = e && e.detail && e.detail.type;
@@ -461,7 +451,6 @@ const game = {
   spawnTimer:0, spawnInterval:90, maxDucksOnScreen:1, reloadTimer:0
 };
 
-// Juice-эффекты
 let screenShake = 0;
 let hitStop = 0;
 let muzzleFlash = 0;
@@ -469,11 +458,15 @@ let muzzleX = 0, muzzleY = 0;
 let lifeLostFlash = 0;
 let roundAnnounce = 0;
 let roundAnnounceText = '';
-let hitPulse = 0; // для HUD
+let hitPulse = 0;
 
 // ═══════════════════════════════════════════════════════════════
 //  УТКА
 // ═══════════════════════════════════════════════════════════════
+const DUCK_LIFE_FRAMES = 20 * 60;        // 20 секунд
+const DUCK_GROUND_FRAMES = 5 * 60;       // 5 секунд на земле
+const DUCK_FADE_FRAMES = 60;             // плавное исчезновение за 1 сек
+
 class Duck {
   constructor() {
     this.dir = Math.random() < 0.5 ? 1 : -1;
@@ -484,8 +477,12 @@ class Duck {
     this.alive = true; this.hit = false; this.fallVy = 0; this.rot = 0;
     this.wingPhase = Math.random() * Math.PI * 2;
     this.changeTimer = 80 + Math.random() * 60;
-    this.trail = []; // трейл для красивого падения
-    this.squash = 1; // для squash&stretch
+    this.trail = [];
+    this.squash = 1;
+    this.alpha = 1;
+    this.lifeTimer = 0;          // сколько кадров летает
+    this.groundTimer = -1;       // таймер после падения
+    this.escaping = false;       // улетает из-за таймаута
   }
   update() {
     // Трейл при падении
@@ -497,14 +494,48 @@ class Duck {
       if (this.trail[i].life <= 0) this.trail.splice(i, 1);
     }
 
+    // ═══ Подстреленная утка: падение + исчезновение на земле ═══
     if (this.hit) {
-      this.fallVy += 0.5;
-      this.y += this.fallVy;
-      this.rot += 0.15;
-      if (this.squash < 1) this.squash += 0.05;
-      if (this.y > H - 60) { this.fallVy = 0; this.y = H - 60; }
+      if (this.groundTimer < 0) {
+        this.fallVy += 0.5;
+        this.y += this.fallVy;
+        this.rot += 0.15;
+        if (this.squash < 1) this.squash += 0.05;
+        if (this.y > H - 60) {
+          this.fallVy = 0;
+          this.y = H - 60;
+          this.groundTimer = DUCK_GROUND_FRAMES;
+        }
+      } else {
+        this.groundTimer--;
+        if (this.groundTimer < DUCK_FADE_FRAMES) {
+          this.alpha = this.groundTimer / DUCK_FADE_FRAMES;
+        }
+        if (this.groundTimer <= 0) {
+          this.alive = false;   // утка исчезает БЕЗ штрафа жизни
+        }
+      }
       return;
     }
+
+    // ═══ Утка улетает по таймауту (20 секунд полёта) ═══
+    if (this.escaping) {
+      this.y -= 8;
+      this.x += this.vx * 0.5;
+      this.wingPhase += 0.5;
+      if (this.y < -100) {
+        this.alive = false;
+        onDuckEscaped();
+      }
+      return;
+    }
+
+    this.lifeTimer++;
+    if (this.lifeTimer >= DUCK_LIFE_FRAMES) {
+      this.escaping = true;
+      return;
+    }
+
     this.x += this.vx;
     this.y += this.vy;
     this.wingPhase += 0.3;
@@ -520,14 +551,12 @@ class Duck {
     if (this.x < -80 || this.x > W + 80) { this.alive = false; onDuckEscaped(); }
   }
   drawShadow() {
-    // Тень на земле — эллипс, размер зависит от высоты
+    if (this.hit) return;
     const depth = Math.max(0.1, 1 - (H - 180 - this.y) / 400);
-    const sx = this.x;
-    const sy = H * 0.72 + 20;
     ctx.globalAlpha = 0.25 * depth;
     ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.ellipse(sx, sy, 22 * depth, 6 * depth, 0, 0, Math.PI * 2);
+    ctx.ellipse(this.x, H * 0.72 + 20, 22 * depth, 6 * depth, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
   }
@@ -540,13 +569,11 @@ class Duck {
       ctx.arc(t.x, t.y, 4 * (t.life / 20), 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = this.alpha;
 
     ctx.save();
     ctx.translate(this.x, this.y);
-    if (this.squash < 1) {
-      ctx.scale(this.squash, 2 - this.squash);
-    }
+    if (this.squash < 1) ctx.scale(this.squash, 2 - this.squash);
     ctx.rotate(this.hit ? this.rot : 0);
     if (this.dir === -1) ctx.scale(-1, 1);
 
@@ -572,6 +599,7 @@ class Duck {
     ctx.fillStyle = isDown ? '#777' : '#2a1a10';
     ctx.beginPath(); ctx.moveTo(-20,-2); ctx.lineTo(-32,-6); ctx.lineTo(-30,4); ctx.closePath(); ctx.fill();
     ctx.restore();
+    ctx.globalAlpha = 1;
   }
   checkHit(mx, my) {
     if (this.hit) return false;
@@ -581,8 +609,10 @@ class Duck {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  СОБАКА (с анонсом раунда)
+//  СОБАКА (в 2 раза крупнее)
 // ═══════════════════════════════════════════════════════════════
+const DOG_SCALE = 2.0;
+
 class Dog {
   constructor() {
     this.state = 'hidden';
@@ -604,7 +634,7 @@ class Dog {
   }
   startAnnounce(round) {
     this.announceRound = round;
-    this.x = -80;
+    this.x = -100;
     this.y = H - 80;
     this.facing = 1;
     this.state = 'announce_in';
@@ -636,7 +666,7 @@ class Dog {
       case 'running_out':
         this.x += this.facing * 6;
         this.y = H - 80 - Math.abs(Math.sin(this.timer*0.3))*6;
-        if (this.x < -80 || this.x > W + 80) this.state = 'hidden';
+        if (this.x < -100 || this.x > W + 100) this.state = 'hidden';
         break;
       case 'popping':
         if (this.timer < 20) this.y = H - 40 - this.timer * 3;
@@ -644,20 +674,19 @@ class Dog {
         else if (this.timer < 130) this.y += 4;
         else this.state = 'hidden';
         break;
-      case 'announce_in': {
+      case 'announce_in':
         this.x += 7;
         this.y = H - 80 - Math.abs(Math.sin(this.timer*0.35))*8;
         if (this.x >= W/2) { this.state = 'announce_show'; this.timer = 0; this.x = W/2; }
         break;
-      }
       case 'announce_show':
         this.y = H - 80 - Math.abs(Math.sin(this.timer*0.1))*4;
-        if (this.timer > 90) { this.state = 'announce_out'; this.timer = 0; this.facing = -1; }
+        if (this.timer > 110) { this.state = 'announce_out'; this.timer = 0; this.facing = -1; }
         break;
       case 'announce_out':
         this.x -= 7;
         this.y = H - 80 - Math.abs(Math.sin(this.timer*0.35))*8;
-        if (this.x < -100) this.state = 'hidden';
+        if (this.x < -120) this.state = 'hidden';
         break;
     }
   }
@@ -666,13 +695,16 @@ class Dog {
     ctx.save();
     ctx.translate(this.x, this.y);
     if (this.facing === -1) ctx.scale(-1, 1);
+    ctx.scale(DOG_SCALE, DOG_SCALE);
+    // сдвигаем визуально вверх, чтобы крупная собака не вылезала за низ
+    ctx.translate(0, -18);
 
     const walking = this.state === 'running_in' || this.state === 'running_out' || this.state === 'announce_in' || this.state === 'announce_out';
     const legOff = walking ? Math.sin(this.timer*0.4)*6 : 0;
 
     // Тень
     ctx.globalAlpha = 0.25; ctx.fillStyle = '#000';
-    ctx.beginPath(); ctx.ellipse(0, 32, 30, 6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, 34, 32, 7, 0, 0, Math.PI*2); ctx.fill();
     ctx.globalAlpha = 1;
 
     // Хвост
@@ -716,28 +748,27 @@ class Dog {
       ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(27,-14,2,0,Math.PI*2); ctx.fill();
     }
 
-    // Табличка с номером раунда
+    // Табличка "РАУНД N"
     if (this.state === 'announce_show' || this.state === 'announce_out') {
       const bob = Math.sin(this.timer * 0.15) * 3;
       ctx.save();
-      ctx.translate(-10, -60 + bob);
-      if (this.facing === -1) ctx.scale(-1, 1);
+      ctx.translate(-12, -75 + bob);
       // палка
       ctx.fillStyle = '#654321';
-      ctx.fillRect(-2, 20, 4, 30);
-      // табличка
+      ctx.fillRect(-3, 22, 6, 34);
+      // табличка (широкая, чтобы влезло "РАУНД 10")
       ctx.fillStyle = '#fff';
       ctx.strokeStyle = '#654321';
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.roundRect(-35, -20, 70, 45, 6);
+      ctx.roundRect(-70, -28, 140, 55, 8);
       ctx.fill(); ctx.stroke();
       // текст
       ctx.fillStyle = '#c00';
-      ctx.font = 'bold 26px Courier New';
+      ctx.font = 'bold 24px Courier New';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('R' + this.announceRound, 0, 2);
+      ctx.fillText('РАУНД ' + this.announceRound, 0, 0);
       ctx.textBaseline = 'alphabetic';
       ctx.restore();
     }
@@ -796,12 +827,9 @@ function spawnShotParticles(x, y) {
 function spawnLeaves() {
   if (leaves.length < 12 && Math.random() < 0.03) {
     leaves.push({
-      x: Math.random() * W,
-      y: -20,
-      vx: (Math.random()-0.5)*0.6,
-      vy: 0.5 + Math.random()*0.5,
-      rot: Math.random()*Math.PI,
-      rotSpeed: (Math.random()-0.5)*0.05,
+      x: Math.random() * W, y: -20,
+      vx: (Math.random()-0.5)*0.6, vy: 0.5 + Math.random()*0.5,
+      rot: Math.random()*Math.PI, rotSpeed: (Math.random()-0.5)*0.05,
       size: 6 + Math.random()*4,
       color: ['#a0522d','#8b4513','#cd853f','#d2691e'][Math.floor(Math.random()*4)],
       sway: Math.random()*Math.PI*2
@@ -812,8 +840,7 @@ function initBirds() {
   birds = [];
   for (let i = 0; i < 4; i++) {
     birds.push({
-      x: Math.random() * W,
-      y: 40 + Math.random() * 80,
+      x: Math.random() * W, y: 40 + Math.random() * 80,
       speed: 0.3 + Math.random() * 0.4,
       wingPhase: Math.random() * Math.PI * 2,
       size: 6 + Math.random() * 4
@@ -822,7 +849,6 @@ function initBirds() {
 }
 initBirds();
 
-// Трава — предзаполненный массив
 const grassBlades = [];
 for (let i = 0; i < 80; i++) {
   grassBlades.push({
@@ -881,15 +907,9 @@ function shoot() {
   stats.shots++;
   sfx.shoot();
   crosshair.pulse = 1;
-
-  // Muzzle flash в точке прицела
-  muzzleX = crosshair.x;
-  muzzleY = crosshair.y;
+  muzzleX = crosshair.x; muzzleY = crosshair.y;
   muzzleFlash = 1;
-
-  // Тряска экрана
   screenShake = 8;
-
   spawnShotParticles(crosshair.x, crosshair.y);
 
   let hit = false;
@@ -897,7 +917,7 @@ function shoot() {
     if (d.checkHit(crosshair.x, crosshair.y)) {
       d.hit = true;
       d.fallVy = -4;
-      d.squash = 0.5; // squash эффект
+      d.squash = 0.5;
       spawnFeathers(d.x, d.y);
       sfx.hit();
       hit = true;
@@ -911,11 +931,7 @@ function shoot() {
     }
   }
   if (!hit) { stats.misses++; sfx.miss(); }
-  else {
-    // HIT-STOP: 4 кадра полной остановки при попадании
-    hitStop = 4;
-    screenShake = 12;
-  }
+  else { hitStop = 4; screenShake = 12; }
   saveStats();
 
   if (game.ammo <= 0) {
@@ -947,7 +963,6 @@ function triggerGameOver() {
   if (acc > stats.bestAccuracy) stats.bestAccuracy = acc;
   addTopScore(game.score, game.round);
   saveStats();
-
   document.getElementById('finalScore').textContent = game.score;
   document.getElementById('finalRound').textContent = game.round;
   setTimeout(() => showScreen('gameoverScreen'), 800);
@@ -962,8 +977,7 @@ function startGame() {
   game.maxDucksOnScreen = 1; game.ducksKilled = 0; game.ducksNeeded = 6;
   ducks = []; particles = []; floaters = []; leaves = [];
   dog.state = 'hidden'; dog.duck = null; dog.timer = 0;
-  lifeLostFlash = 0; screenShake = 0; hitStop = 0;
-  roundAnnounce = 0;
+  lifeLostFlash = 0; screenShake = 0; hitStop = 0; roundAnnounce = 0;
   showScreen(null);
   stats.games++;
   saveStats();
@@ -982,13 +996,9 @@ function nextRound() {
   ducks = [];
   dog.state = 'hidden'; dog.duck = null; dog.timer = 0;
   lifeLostFlash = 0; screenShake = 0; hitStop = 0;
-
-  // Собака объявляет новый раунд
   dog.startAnnounce(game.round);
   roundAnnounce = 1;
   roundAnnounceText = 'РАУНД ' + game.round;
-
-  // Небольшая пауза перед спавном
   game.spawnTimer = 180;
 }
 
@@ -996,24 +1006,18 @@ function nextRound() {
 //  ОБНОВЛЕНИЕ
 // ═══════════════════════════════════════════════════════════════
 function update() {
-  // Тряска и прочие juice
   if (screenShake > 0) screenShake = Math.max(0, screenShake - 0.7);
   if (muzzleFlash > 0) muzzleFlash = Math.max(0, muzzleFlash - 0.15);
   if (lifeLostFlash > 0) lifeLostFlash = Math.max(0, lifeLostFlash - 0.02);
   if (crosshair.pulse > 0) crosshair.pulse = Math.max(0, crosshair.pulse - 0.08);
   if (hitPulse > 0) hitPulse = Math.max(0, hitPulse - 0.05);
-
-  // Плавный счётчик очков
   if (game.scoreDisplay !== game.score) {
     const diff = game.score - game.scoreDisplay;
     game.scoreDisplay += Math.sign(diff) * Math.max(1, Math.abs(diff) * 0.15);
     if (Math.abs(game.score - game.scoreDisplay) < 1) game.scoreDisplay = game.score;
   }
-
-  // Анимация анонса раунда
   if (roundAnnounce > 0) roundAnnounce = Math.max(0, roundAnnounce - 0.008);
 
-  // HIT-STOP: короткая пауза всего геймплея
   if (hitStop > 0) {
     hitStop--;
     updateParticles();
@@ -1038,7 +1042,6 @@ function update() {
     game.reloadTimer--;
     if (game.reloadTimer === 0) game.ammo = game.maxAmmo;
   }
-
   if (game.reloadTimer === 0) {
     game.spawnTimer--;
     if (game.spawnTimer <= 0 && ducks.filter(d => !d.hit).length < game.maxDucksOnScreen) {
@@ -1060,7 +1063,6 @@ function update() {
     setTimeout(() => { if (state === STATE.ROUND_END) nextRound(); }, 1500);
   }
 }
-
 function updateParticles() {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
@@ -1086,14 +1088,9 @@ function updateBirds() {
   for (const b of birds) {
     b.x -= b.speed;
     b.wingPhase += 0.15;
-    if (b.x < -20) {
-      b.x = W + 20;
-      b.y = 40 + Math.random() * 80;
-      b.speed = 0.3 + Math.random() * 0.4;
-    }
+    if (b.x < -20) { b.x = W + 20; b.y = 40 + Math.random() * 80; b.speed = 0.3 + Math.random() * 0.4; }
   }
 }
-
 function showFloater(text, x, y, color, size) {
   floaters.push({ text, x, y, life: 70, color: color || '#ffe066', size: size || 22 });
 }
@@ -1103,18 +1100,12 @@ function showFloater(text, x, y, color, size) {
 // ═══════════════════════════════════════════════════════════════
 function drawSky() {
   const g = ctx.createLinearGradient(0, -20, 0, H*0.7);
-  g.addColorStop(0, '#4a90d9');
-  g.addColorStop(0.5, '#87ceeb');
-  g.addColorStop(1, '#c5e8f7');
-  ctx.fillStyle = g;
-  ctx.fillRect(-20, -20, W + 40, H*0.7 + 20);
+  g.addColorStop(0, '#4a90d9'); g.addColorStop(0.5, '#87ceeb'); g.addColorStop(1, '#c5e8f7');
+  ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, H*0.7 + 20);
 }
 function drawClouds(t) {
   ctx.fillStyle = 'rgba(255,255,255,0.75)';
-  const clouds = [
-    { x:100, y:80, s:1.0 }, { x:450, y:130, s:0.7 },
-    { x:650, y:60, s:1.2 }, { x:250, y:170, s:0.6 }
-  ];
+  const clouds = [{ x:100, y:80, s:1.0 }, { x:450, y:130, s:0.7 }, { x:650, y:60, s:1.2 }, { x:250, y:170, s:0.6 }];
   for (const c of clouds) {
     const x = ((c.x + t*0.15) % (W + 200)) - 100;
     ctx.beginPath();
@@ -1126,9 +1117,7 @@ function drawClouds(t) {
   }
 }
 function drawBirds() {
-  ctx.strokeStyle = 'rgba(30,30,30,0.55)';
-  ctx.lineWidth = 2;
-  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(30,30,30,0.55)'; ctx.lineWidth = 2; ctx.lineCap = 'round';
   for (const b of birds) {
     const wing = Math.sin(b.wingPhase) * 4;
     ctx.beginPath();
@@ -1139,8 +1128,7 @@ function drawBirds() {
   }
 }
 function drawTree() {
-  ctx.fillStyle = '#3a2515';
-  ctx.fillRect(40, H*0.5, 20, H*0.25);
+  ctx.fillStyle = '#3a2515'; ctx.fillRect(40, H*0.5, 20, H*0.25);
   ctx.fillStyle = '#2d5016';
   ctx.beginPath();
   ctx.arc(50, H*0.48, 45, 0, Math.PI*2);
@@ -1151,21 +1139,16 @@ function drawTree() {
 function drawGround() {
   const g = ctx.createLinearGradient(0, H*0.7, 0, H + 20);
   g.addColorStop(0, '#4a8a3a'); g.addColorStop(1, '#2d5a1e');
-  ctx.fillStyle = g;
-  ctx.fillRect(-20, H*0.7, W + 40, H*0.3 + 20);
-  // Кусты
+  ctx.fillStyle = g; ctx.fillRect(-20, H*0.7, W + 40, H*0.3 + 20);
   ctx.fillStyle = '#2d5016';
   for (let i = 0; i < 8; i++) {
-    ctx.beginPath();
-    ctx.arc(i*110 + 30, H*0.7+10, 30, Math.PI, 0);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(i*110 + 30, H*0.7+10, 30, Math.PI, 0); ctx.fill();
   }
 }
 function drawGrass(t) {
   for (const b of grassBlades) {
     const sway = Math.sin(t * b.speed + b.phase) * 3;
-    ctx.strokeStyle = b.color;
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = b.color; ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(b.x, b.y);
     ctx.quadraticCurveTo(b.x + sway*0.5, b.y - b.h*0.6, b.x + sway, b.y - b.h);
@@ -1175,12 +1158,9 @@ function drawGrass(t) {
 function drawLeaves() {
   for (const l of leaves) {
     ctx.save();
-    ctx.translate(l.x, l.y);
-    ctx.rotate(l.rot);
+    ctx.translate(l.x, l.y); ctx.rotate(l.rot);
     ctx.fillStyle = l.color;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, l.size, l.size * 0.5, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, 0, l.size, l.size * 0.5, 0, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
 }
@@ -1190,8 +1170,7 @@ function drawParticles() {
     ctx.fillStyle = p.color || '#ddd';
     if (p.rot !== undefined) {
       ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.rot);
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
       ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size * 0.6);
       ctx.restore();
     } else {
@@ -1201,13 +1180,10 @@ function drawParticles() {
   ctx.globalAlpha = 1;
 }
 function drawHUD() {
-  // SCORE — плавное значение + подпрыгивание при попадании
   const scoreScale = 1 + hitPulse * 0.2;
   ctx.save();
-  ctx.translate(20, 40);
-  ctx.scale(scoreScale, scoreScale);
-  ctx.font = 'bold 26px Courier New';
-  ctx.textAlign = 'left';
+  ctx.translate(20, 40); ctx.scale(scoreScale, scoreScale);
+  ctx.font = 'bold 26px Courier New'; ctx.textAlign = 'left';
   ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
   ctx.strokeText('SCORE: ' + Math.round(game.scoreDisplay), 0, 0);
   ctx.fillText('SCORE: ' + Math.round(game.scoreDisplay), 0, 0);
@@ -1219,28 +1195,23 @@ function drawHUD() {
   ctx.strokeText('УТОК: ' + game.ducksKilled + ' / ' + game.ducksNeeded, 20, 72);
   ctx.fillText('УТОК: ' + game.ducksKilled + ' / ' + game.ducksNeeded, 20, 72);
 
-  // Сердечки с пульсацией
   const now = performance.now() * 0.003;
   for (let i = 0; i < game.lives; i++) {
     const x = 20 + i * 26;
     const pulse = 1 + Math.sin(now + i * 0.6) * 0.08;
     ctx.save();
-    ctx.translate(x + 10, 100);
-    ctx.scale(pulse, pulse);
-    ctx.font = '22px Arial';
-    ctx.textAlign = 'center';
+    ctx.translate(x + 10, 100); ctx.scale(pulse, pulse);
+    ctx.font = '22px Arial'; ctx.textAlign = 'center';
     ctx.fillText('❤️', 0, 0);
     ctx.restore();
   }
 
-  // ROUND
   ctx.textAlign = 'right';
   ctx.font = 'bold 26px Courier New';
   ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
   ctx.strokeText('ROUND ' + game.round, W - 30, 40);
   ctx.fillText('ROUND ' + game.round, W - 30, 40);
 
-  // Патроны
   const startX = W - 30, startY = 80;
   for (let i = 0; i < game.maxAmmo; i++) {
     const x = startX - i*18;
@@ -1251,15 +1222,13 @@ function drawHUD() {
   }
 
   if (game.reloadTimer > 0) {
-    const total = 90;
-    const progress = 1 - (game.reloadTimer / total);
+    const progress = 1 - (game.reloadTimer / 90);
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(W - 160, 110, 130, 16);
     ctx.fillStyle = '#f87171';
     ctx.fillRect(W - 158, 112, 126 * progress, 12);
     ctx.textAlign = 'right';
-    ctx.font = 'bold 14px Courier New';
-    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 14px Courier New'; ctx.fillStyle = '#fff';
     ctx.fillText('ПЕРЕЗАРЯДКА', W - 30, 145);
   }
 }
@@ -1285,9 +1254,7 @@ function drawMuzzleFlash() {
   g.addColorStop(0.4, 'rgba(255,180,50,' + (muzzleFlash*0.7) + ')');
   g.addColorStop(1, 'rgba(255,100,0,0)');
   ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(muzzleX, muzzleY, r, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(muzzleX, muzzleY, r, 0, Math.PI * 2); ctx.fill();
 }
 function drawFloaters() {
   ctx.textAlign = 'center';
@@ -1313,16 +1280,13 @@ function drawRoundAnnounce() {
   ctx.translate(W/2, H*0.35);
   ctx.font = 'bold ' + size + 'px Courier New';
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#ffe066';
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 8;
+  ctx.fillStyle = '#ffe066'; ctx.strokeStyle = '#000'; ctx.lineWidth = 8;
   ctx.strokeText(roundAnnounceText, 0, 0);
   ctx.fillText(roundAnnounceText, 0, 0);
   ctx.restore();
 }
 function drawRoundEnd() {
-  ctx.fillStyle = 'rgba(0,0,0,0.7)';
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, 0, W, H);
   ctx.textAlign = 'center';
   ctx.font = 'bold 56px Courier New';
   ctx.fillStyle = '#4ade80'; ctx.strokeStyle = '#000'; ctx.lineWidth = 8;
@@ -1332,8 +1296,7 @@ function drawRoundEnd() {
   ctx.fillStyle = '#ffe066';
   ctx.strokeText('Счёт: ' + game.score, W/2, H/2 + 40);
   ctx.fillText('Счёт: ' + game.score, W/2, H/2 + 40);
-  ctx.font = 'bold 22px Courier New';
-  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 22px Courier New'; ctx.fillStyle = '#fff';
   ctx.strokeText('Следующий раунд ' + (game.round + 1) + '...', W/2, H/2 + 90);
   ctx.fillText('Следующий раунд ' + (game.round + 1) + '...', W/2, H/2 + 90);
 }
@@ -1341,16 +1304,8 @@ function drawRoundEnd() {
 let time = 0;
 function draw() {
   time++;
-  drawSky();
-  drawClouds(time);
-  drawBirds();
-  drawTree();
-  drawGround();
-  drawGrass(time);
-
-  // Тени уток
+  drawSky(); drawClouds(time); drawBirds(); drawTree(); drawGround(); drawGrass(time);
   for (const d of ducks) d.drawShadow();
-  // Утки
   for (const d of ducks) d.draw();
   dog.draw();
   drawLeaves();
@@ -1360,11 +1315,9 @@ function draw() {
   if (state === STATE.PLAY || state === STATE.ROUND_END || state === STATE.GAME_OVER) {
     drawHUD();
   }
-
   drawFloaters();
   drawRoundAnnounce();
 
-  // Красная вспышка при потере жизни
   if (lifeLostFlash > 0) {
     ctx.fillStyle = 'rgba(220, 38, 38, ' + (lifeLostFlash * 0.35) + ')';
     ctx.fillRect(0, 0, W, H);
@@ -1379,15 +1332,10 @@ function draw() {
 // ═══════════════════════════════════════════════════════════════
 function loop() {
   update();
-
-  // Очистка
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Shake transform
   const shakeX = screenShake > 0 ? (Math.random() - 0.5) * screenShake : 0;
   const shakeY = screenShake > 0 ? (Math.random() - 0.5) * screenShake : 0;
-
   ctx.setTransform(currentDpr, 0, 0, currentDpr, 0, 0);
   ctx.translate(offsetX + shakeX, offsetY + shakeY);
   ctx.scale(scale, scale);
@@ -1397,12 +1345,10 @@ function loop() {
   draw();
   ctx.restore();
 
-  // Letterbox
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (offsetX > 0 || offsetY > 0) {
     ctx.fillStyle = '#0a0a1a';
-    const vw = canvas.width;
-    const vh = canvas.height;
+    const vw = canvas.width, vh = canvas.height;
     if (offsetX > 0) {
       const ox = offsetX * currentDpr;
       ctx.fillRect(0, 0, ox, vh);
@@ -1414,7 +1360,6 @@ function loop() {
       ctx.fillRect(0, vh - oy, vw, oy);
     }
   }
-
   requestAnimationFrame(loop);
 }
 
@@ -1444,10 +1389,7 @@ const BONUSES = [
       return vkSend('VKWebAppShowStoryBox', {
         background_type: 'image',
         blob: dataUrl,
-        attachment: {
-          text: 'Играть', type: 'url',
-          url: 'https://vk.com/app' + VK_APP_ID
-        }
+        attachment: { text: 'Играть', type: 'url', url: 'https://vk.com/app' + VK_APP_ID }
       });
     }
   },
@@ -1523,44 +1465,76 @@ async function renderBonusList() {
   });
 }
 
+let pendingBonusLives = 0;
+
 async function claimBonus(id) {
   const b = BONUSES.find(x => x.id === id);
   if (!b || claimed[id]) return;
   const loader = document.getElementById('bonusLoader');
   loader.textContent = '⏳ Ожидание действия...';
+
   let ok = false;
-  try { await b.vk(); ok = true; }
-  catch (e) {
+  try {
+    if (b.id === 'story') {
+      // Для истории: ждём промис, но не дольше 2 секунд — иначе начисляем принудительно
+      try {
+        await Promise.race([
+          b.vk(),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('story timeout')), 2000))
+        ]);
+      } catch (e) {
+        // Таймаут или ошибка — всё равно считаем успехом (пользователь открыл редактор)
+        console.log('story:', e.message);
+      }
+      ok = true;
+    } else {
+      await b.vk();
+      ok = true;
+    }
+  } catch (e) {
     console.log('Bonus error:', e);
     if (b.id === 'story') ok = false;
     else ok = true;
   }
+
   if (ok) {
     claimed[id] = true;
     await storageSet('bonus_' + id, '1');
+
+    let started = false;
     if (state === STATE.GAME_OVER) {
       startGameWithBonus(b.reward);
+      started = true;
     } else if (state === STATE.PLAY) {
       game.lives += b.reward;
-      for (let i = 0; i < b.reward; i++) showFloater('+1 ❤️', W/2 + i*40 - 20, H - 100, '#4ade80', 28);
+      for (let i = 0; i < b.reward; i++)
+        showFloater('+1 ❤️', W/2 + i*40 - 20, H - 100, '#4ade80', 28);
     } else {
       pendingBonusLives += b.reward;
     }
     sfx.life();
     loader.textContent = '✅ Получено +' + b.reward + ' ❤️';
-    setTimeout(() => { loader.textContent = ''; }, 2000);
     renderBonusList();
+
+    // Для story или любого бонуса — автозакрытие экрана бонусов через 1.2 сек
+    setTimeout(() => {
+      loader.textContent = '';
+      if (started) return; // если игра уже запущена startGameWithBonus — экран закрыт
+      if (state === STATE.GAME_OVER) showScreen('gameoverScreen');
+      else if (state === STATE.PLAY) showScreen(null);
+      else showScreen('menuScreen');
+    }, 1200);
   } else {
     loader.textContent = '❌ Не удалось';
     setTimeout(() => { loader.textContent = ''; }, 2000);
   }
 }
 
-let pendingBonusLives = 0;
 function startGameWithBonus(extraLives) {
   startGame();
   game.lives = START_LIVES + extraLives;
-  for (let i = 0; i < extraLives; i++) showFloater('+1 ❤️', W/2 + i*40 - 20, H - 100, '#4ade80', 28);
+  for (let i = 0; i < extraLives; i++)
+    showFloater('+1 ❤️', W/2 + i*40 - 20, H - 100, '#4ade80', 28);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1668,9 +1642,8 @@ document.addEventListener('click', async e => {
       })()
     ]),
     new Promise(r => setTimeout(r, 1500))
-  ]).then(() => {
-    console.log('🦆 bootstrap done');
-  }).catch(e => console.warn('preload:', e));
+  ]).then(() => { console.log('🦆 bootstrap done'); })
+    .catch(e => console.warn('preload:', e));
 })();
 </script>
 </body>
