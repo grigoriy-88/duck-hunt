@@ -4,246 +4,152 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
 <title>🦆 Охота на уток</title>
-<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+<script>
+  (function(){
+    var s = document.createElement('script');
+    s.src = 'https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js';
+    s.async = true;
+    s.onerror = function(){ console.warn('VK Bridge не загрузился'); };
+    document.head.appendChild(s);
+  })();
+</script>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; user-select:none; -webkit-tap-highlight-color:transparent; }
   html, body {
-  width: 100%;
-  height: 100%;
-  height: 100dvh; /* динамическая высота — iPhone-safe */
-  overflow: hidden;
-  position: fixed; /* защита от скролла при повороте */
-  inset: 0;
-  background: #0a0a1a;
-  font-family: 'Courier New', monospace;
-  color: #fff;
-  overscroll-behavior: none;
-}
-#game {
-  display: block;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
-  cursor: none;
-  touch-action: none;
-}
+    width:100%; height:100%; height:100dvh; overflow:hidden;
+    position:fixed; inset:0;
+    background: radial-gradient(ellipse at center, #141e30 0%, #0a0a1a 100%);
+    font-family:'Courier New', monospace; color:#fff;
+    overscroll-behavior:none;
+  }
+  #game { display:block; position:fixed; top:0; left:0; width:100vw; height:100vh;
+    height:100dvh; cursor:none; touch-action:none; }
 
-#ui {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 800px;
-  height: 600px;
-  pointer-events: none;
-  z-index: 10;
-  transform-origin: 0 0;
-  /* позиция, размер и scale задаются из resize() через JS */
-}
- 
- .screen {
-  position: absolute;
-  inset: 0;
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: rgba(5,10,25,0.88);
-  pointer-events: auto;
-  padding: 16px;
-  text-align: center;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-  .screen.show { display:flex; }
+  #ui { position:fixed; top:0; left:0; width:800px; height:600px;
+    pointer-events:none; z-index:10; transform-origin:0 0; }
 
-  .screen h1 {
-  font-size: 44px;
-  color:#ffe066;
-  text-shadow: 0 4px 0 #000, 0 0 20px rgba(255,224,102,0.5);
-  margin-bottom: 18px;
-  letter-spacing: 2px;
-}
-.screen h2 {
-  font-size: 22px;
-  color:#4ade80;
-  margin-bottom: 12px;
-}
-.screen p {
-  font-size: 17px;
-  color:#cbd5e1;
-  margin: 6px 0;
-  line-height: 1.5;
-}
-.screen .big {
-  font-size: 52px;
-  color:#fff;
-  font-weight: bold;
-  margin: 10px 0 20px;
-  text-shadow: 0 0 20px #4ade80;
-}
-.btn {
-  background: linear-gradient(180deg, #4ade80 0%, #22a355 100%);
-  color: #052e16;
-  border: none;
-  padding: 14px 32px;
-  font-size: 18px;
-  font-family: inherit;
-  font-weight: bold;
-  letter-spacing: 1px;
-  border-radius: 10px;
-  cursor: pointer;
-  margin: 8px;
-  box-shadow: 0 4px 0 #166534, 0 6px 20px rgba(0,0,0,0.5);
-  transition: transform 0.05s, box-shadow 0.05s;
-  text-transform: uppercase;
-  min-width: 260px;
-  line-height: 1.3;
-}
-.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #166534; }
+  .screen {
+    position:absolute; inset:0; display:none;
+    flex-direction:column; align-items:center; justify-content:center;
+    background: rgba(5,10,25,0.88);
+    pointer-events:auto; padding:16px; text-align:center;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+  }
+  .screen.show { display:flex; animation: fadeIn 0.35s ease-out; }
+  @keyframes fadeIn {
+    from { opacity:0; transform: scale(0.96); }
+    to { opacity:1; transform: scale(1); }
+  }
 
-.btn.secondary {
-  background: linear-gradient(180deg, #facc15 0%, #d97706 100%);
-  box-shadow: 0 4px 0 #92400e, 0 6px 20px rgba(0,0,0,0.5);
-  color: #451a03;
-}
-.btn.secondary:active { box-shadow: 0 1px 0 #92400e; }
+  .screen h1 { font-size:44px; color:#ffe066;
+    text-shadow: 0 4px 0 #000, 0 0 20px rgba(255,224,102,0.5);
+    margin-bottom:16px; letter-spacing:2px; }
+  .screen h2 { font-size:22px; color:#4ade80; margin-bottom:10px; }
+  .screen p { font-size:17px; color:#cbd5e1; margin:5px 0; line-height:1.5; }
+  .screen .big { font-size:52px; color:#fff; font-weight:bold;
+    margin:8px 0 18px; text-shadow: 0 0 20px #4ade80; }
 
-.btn.ghost {
-  background: transparent;
-  color: #cbd5e1;
-  box-shadow: inset 0 0 0 2px #475569;
-  min-width: 200px;
-  font-size: 16px;
-  padding: 10px 24px;
-}
+  .btn {
+    background: linear-gradient(180deg, #4ade80 0%, #22a355 100%);
+    color:#052e16; border:none; padding:14px 32px;
+    font-size:18px; font-family:inherit; font-weight:bold;
+    letter-spacing:1px; border-radius:10px; cursor:pointer; margin:7px;
+    box-shadow: 0 4px 0 #166534, 0 6px 20px rgba(0,0,0,0.5);
+    transition: transform 0.05s, box-shadow 0.05s;
+    text-transform: uppercase; min-width:260px; line-height:1.3;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #166534; }
+  .btn.secondary {
+    background: linear-gradient(180deg, #facc15 0%, #d97706 100%);
+    box-shadow: 0 4px 0 #92400e, 0 6px 20px rgba(0,0,0,0.5); color:#451a03;
+  }
+  .btn.secondary:active { box-shadow: 0 1px 0 #92400e; }
+  .btn.ghost {
+    background: transparent; color:#cbd5e1;
+    box-shadow: inset 0 0 0 2px #475569;
+    min-width:200px; font-size:16px; padding:10px 24px;
+  }
+  .btn:disabled {
+    background: linear-gradient(180deg, #475569 0%, #334155 100%);
+    color:#94a3b8; cursor:not-allowed; box-shadow: 0 4px 0 #1e293b;
+  }
 
-.btn:disabled {
-  background: linear-gradient(180deg, #475569 0%, #334155 100%);
-  color: #94a3b8;
-  cursor: not-allowed;
-  box-shadow: 0 4px 0 #1e293b;
-}
-
-  .bonus-list {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 6px;
-  width: 520px;
-  margin: 10px 0;
-}
+  .bonus-list { display:grid; grid-template-columns:1fr; gap:6px;
+    width:520px; margin:10px 0; }
   .bonus-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(30,41,59,0.9);
-  border: 2px solid #334155;
-  border-radius: 8px;
-  padding: 6px 12px;
-  transition: border-color 0.15s, background 0.15s;
-}
-  .bonus-item .icon { font-size: 20px; width: 28px; text-align: center; }
-  .bonus-item .info { flex: 1; text-align: left; }
-  .bonus-item .label { font-size: 15px; color:#e2e8f0; font-weight: bold; }
-  .bonus-item .reward { font-size: 12px; color:#4ade80; margin-top: 2px; line-height: 1.3; }
+    display:flex; align-items:center; gap:10px;
+    background: rgba(30,41,59,0.9); border:2px solid #334155;
+    border-radius:8px; padding:6px 12px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .bonus-item .icon { font-size:20px; width:28px; text-align:center; }
+  .bonus-item .info { flex:1; text-align:left; }
+  .bonus-item .label { font-size:14px; color:#e2e8f0; font-weight:bold; }
+  .bonus-item .reward { font-size:11px; color:#4ade80; margin-top:2px; line-height:1.3; }
   .bonus-item button {
-    padding: 8px 16px;
-    background: #4ade80; color: #052e16; border: none;
-    font-family: inherit; font-weight: bold;
-    font-size: 13px; border-radius: 6px; cursor: pointer;
-    min-width: 100px;
-    transition: opacity 0.15s;
+    padding:7px 14px; background:#4ade80; color:#052e16; border:none;
+    font-family:inherit; font-weight:bold; font-size:12px;
+    border-radius:6px; cursor:pointer; min-width:90px;
   }
-  .bonus-item button:disabled {
-    background: #334155; color: #64748b; cursor: default;
-  }
-  .bonus-item.claimed { opacity: 0.55; border-color: #1e293b; }
+  .bonus-item button:disabled { background:#334155; color:#64748b; cursor:default; }
+  .bonus-item.claimed { opacity:0.55; border-color:#1e293b; }
   .bonus-item.claimed .icon { filter: grayscale(1); }
 
-  .hint { font-size: 13px; color:#94a3b8; margin-top: 12px; max-width: 500px; }
-  .loader { color: #94a3b8; font-size: 14px; margin-top: 10px; }
- .music-btn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 50;
-  background: rgba(30,41,59,0.95);
-  color: #fff;
-  border: 2px solid #475569;
-  border-radius: 50%;
-  width: 54px;
-  height: 54px;
-  font-size: 24px;
-  cursor: pointer;
-  pointer-events: auto;
-  transition: transform 0.1s, background 0.15s;
-  font-family: inherit;
-}
-.music-btn:active { transform: scale(0.92); }
-.music-btn.on { background: #22a355; border-color: #4ade80; }
+  .stats-grid { display:grid; grid-template-columns:repeat(2, 1fr);
+    gap:6px; width:520px; margin:10px 0; }
+  .stat-card { background: rgba(30,41,59,0.9); border:2px solid #334155;
+    border-radius:8px; padding:8px 12px; text-align:left; }
+  .stat-card .k { font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:1px; }
+  .stat-card .v { font-size:20px; color:#ffe066; font-weight:bold; margin-top:2px; }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  width: min(560px, 92vw);
-  margin: 12px 0;
-}
-.stat-card {
-  background: rgba(30,41,59,0.9);
-  border: 2px solid #334155;
-  border-radius: 8px;
-  padding: 10px 12px;
-  text-align: left;
-}
-.stat-card .k {
-  font-size: 11px; color:#94a3b8;
-  text-transform: uppercase; letter-spacing: 1px;
-}
-.stat-card .v {
-  font-size: 22px; color:#ffe066; font-weight: bold; margin-top: 2px;
-}
-.top-list {
-  width: min(560px, 92vw);
-  max-height: 220px;
-  overflow-y: auto;
-  margin: 6px 0 14px;
-}
-.top-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 14px;
-  background: rgba(30,41,59,0.9);
-  border: 2px solid #334155;
-  border-radius: 6px;
-  margin-bottom: 4px;
-  font-size: 14px;
-}
-.top-item.first { border-color: #ffe066; background: rgba(120,80,0,0.4); }
-.top-item .rank { color:#94a3b8; width: 26px; font-weight: bold; }
-.top-item .score { color:#4ade80; font-weight: bold; flex: 1; text-align: left; }
-.top-item .round { color:#94a3b8; font-size: 12px; }
-.top-item .date { color:#64748b; font-size: 11px; }
- @media (orientation: portrait) {
-  #rotate-hint { display: flex !important; }
-}
- 
+  .top-list { width:520px; max-height:200px; overflow-y:auto; margin:6px 0 12px; }
+  .top-item { display:flex; align-items:center; gap:10px;
+    padding:6px 12px; background: rgba(30,41,59,0.9);
+    border:2px solid #334155; border-radius:6px; margin-bottom:4px; font-size:13px; }
+  .top-item.first { border-color:#ffe066; background: rgba(120,80,0,0.4); }
+  .top-item .rank { color:#94a3b8; width:26px; font-weight:bold; }
+  .top-item .score { color:#4ade80; font-weight:bold; flex:1; text-align:left; }
+  .top-item .round { color:#94a3b8; font-size:11px; }
+  .top-item .date { color:#64748b; font-size:11px; }
+
+  .hint { font-size:12px; color:#94a3b8; margin-top:6px; max-width:480px; }
+  .loader { color:#94a3b8; font-size:12px; margin-top:6px; }
+
+  .music-btn {
+    position:fixed; bottom:20px; right:20px; z-index:50;
+    background: rgba(30,41,59,0.95); color:#fff;
+    border:2px solid #475569; border-radius:50%;
+    width:54px; height:54px; font-size:24px; cursor:pointer;
+    transition: transform 0.1s, background 0.15s; font-family:inherit;
+  }
+  .music-btn:active { transform: scale(0.92); }
+  .music-btn.on { background:#22a355; border-color:#4ade80; }
+
+  #quickExit {
+    display:none; position:absolute; top:8px; right:8px;
+    z-index:20; width:36px; height:36px; border-radius:50%; border:none;
+    background: rgba(0,0,0,0.6); color:#fff; font-size:18px; cursor:pointer;
+    pointer-events:auto; font-family:inherit;
+  }
+  @media (orientation: portrait) {
+    #rotate-hint { display: flex !important; }
+  }
 </style>
 </head>
 <body>
- <div id="rotate-hint" style="display:none;position:fixed;inset:0;background:#0a0a1a;
+
+<div id="rotate-hint" style="display:none;position:fixed;inset:0;background:#0a0a1a;
      color:#ffe066;font-family:'Courier New',monospace;font-size:22px;font-weight:bold;
      align-items:center;justify-content:center;text-align:center;z-index:9999;padding:30px;">
   📱 Поверни телефон горизонтально<br><br>
   🦆 Играть удобнее в ландшафте
 </div>
+
 <canvas id="game"></canvas>
 <button class="music-btn" id="musicBtn" title="Музыка">🔇</button>
- 
+
 <div id="ui">
 
-  <!-- ГЛАВНОЕ МЕНЮ -->
   <div class="screen show" id="menuScreen">
     <h1>🦆 ОХОТА НА УТОК</h1>
     <p>🎯 Наведи прицел мышью или пальцем</p>
@@ -252,16 +158,11 @@
     <p>🏆 Убей нужное число уток — новый раунд</p>
     <button class="btn" data-action="start">▶ Играть</button>
     <button class="btn secondary" data-action="bonuses">🎁 Получить жизни</button>
-   <button class="btn ghost" data-action="leader">🏆 Рекорды</button>
-   <button class="btn ghost" data-action="exit-app" style="min-width:200px;">🚪 Выйти</button>
+    <button class="btn ghost" data-action="leader">🏆 Рекорды</button>
+    <button class="btn ghost" data-action="exit-app" style="min-width:200px;color:#f87171;">🚪 Выйти</button>
     <div class="hint" id="vkGreeting"></div>
-   <button id="quickExit" style="display:none;position:absolute;top:8px;right:8px;
-  z-index:20;width:36px;height:36px;border-radius:50%;border:none;
-  background:rgba(0,0,0,0.6);color:#fff;font-size:18px;cursor:pointer;
-  pointer-events:auto;font-family:inherit;">✕</button>
   </div>
 
-  <!-- КОНЕЦ ИГРЫ -->
   <div class="screen" id="gameoverScreen">
     <h1>💀 ИГРА ОКОНЧЕНА</h1>
     <p>Твой результат:</p>
@@ -269,39 +170,46 @@
     <p>Раунд: <span id="finalRound">1</span></p>
     <button class="btn" data-action="restart">🔄 Играть снова</button>
     <button class="btn secondary" data-action="bonuses">🎁 Получить жизни</button>
-   <button class="btn ghost" data-action="leader">🏆 Рекорды</button>
-   <button class="btn ghost" data-action="exit-app">🚪 Выйти</button>
+    <button class="btn ghost" data-action="leader">🏆 Рекорды</button>
     <button class="btn ghost" data-action="menu">🏠 В меню</button>
+    <button class="btn ghost" data-action="exit-app" style="color:#f87171;">🚪 Выйти</button>
   </div>
 
-  <!-- БОНУСЫ -->
   <div class="screen" id="bonusScreen">
-  <h1 style="font-size:34px;margin-bottom:6px;">🎁 БОНУСНЫЕ ЖИЗНИ</h1>
-  <p style="font-size:14px;margin:2px 0 6px;">За каждое действие — дополнительные жизни</p>
-  <div class="bonus-list" id="bonusList"></div>
-  <button class="btn ghost" data-action="close-bonus" style="margin:6px;padding:8px 20px;font-size:14px;">← Назад</button>
-  <div class="hint" style="font-size:12px;margin-top:4px;">Каждый бонус можно получить один раз. Прогресс сохраняется.</div>
-  <div class="loader" id="bonusLoader" style="font-size:12px;margin-top:4px;"></div>
-</div>
+    <h1 style="font-size:34px;margin-bottom:6px;">🎁 БОНУСНЫЕ ЖИЗНИ</h1>
+    <p style="font-size:14px;margin:2px 0 6px;">За каждое действие — дополнительные жизни</p>
+    <div class="bonus-list" id="bonusList"></div>
+    <button class="btn ghost" data-action="close-bonus" style="margin:6px;padding:8px 20px;font-size:14px;">← Назад</button>
+    <div class="hint" style="font-size:12px;margin-top:4px;">Каждый бонус можно получить один раз. Прогресс сохраняется.</div>
+    <div class="loader" id="bonusLoader"></div>
+  </div>
+
   <div class="screen" id="leaderScreen">
     <h1>🏆 РЕКОРДЫ</h1>
     <div class="stats-grid" id="statsGrid"></div>
-    <h2 style="margin-top:10px;font-size:18px;">Топ-10 игр</h2>
+    <h2 style="margin-top:8px;font-size:18px;">Топ-10 игр</h2>
     <div class="top-list" id="topList"></div>
     <button class="btn ghost" data-action="close-leader">← Назад</button>
     <button class="btn ghost" data-action="reset-scores"
       style="font-size:13px;min-width:auto;padding:8px 18px;color:#f87171;">🗑 Сбросить</button>
   </div>
+
+  <button id="quickExit">✕</button>
 </div>
 
 <script>
 // ═══════════════════════════════════════════════════════════════
-//  ⚙️  НАСТРОЙКИ VK — ЗАМЕНИ НА СВОИ ЗНАЧЕНИЯ
+//  ⚙️  НАСТРОЙКИ VK — ЗАМЕНИ НА СВОИ
 // ═══════════════════════════════════════════════════════════════
-const VK_GROUP_ID = 228373135;   // ← ID сообщества (без минуса)
-const VK_POST_ID  = 6017;           // ← ID поста для лайка/коммента
-const VK_APP_ID   = 54787293;    // ← ID приложения
+const VK_GROUP_ID = 228373135;
+const VK_POST_ID  = 7622;
+const VK_APP_ID   = 54787293;
 const START_LIVES = 3;
+
+// ═══ Перехват ошибок ═══
+window.addEventListener('error', e => {
+  console.error('[GAME ERROR]', e.error || e.message, e.filename, e.lineno);
+});
 
 // ═══════════════════════════════════════════════════════════════
 //  VK BRIDGE
@@ -309,44 +217,18 @@ const START_LIVES = 3;
 let vkReady = false;
 let vkUser = null;
 
-if (window.vkBridge) {
-  vkBridge.send('VKWebAppInit')
-    .then(() => { vkReady = true; })
-    .catch(e => console.log('VK init error:', e));
-  vkBridge.send('VKWebAppGetUserInfo')
-    .then(u => {
-      vkUser = u;
-      const g = document.getElementById('vkGreeting');
-      if (g) g.textContent = '👋 Привет, ' + u.first_name + '!';
-    })
-    .catch(() => {});
+function withTimeout(promise, ms = 2500) {
+  return Promise.race([
+    promise,
+    new Promise((_, rej) => setTimeout(() => rej(new Error('vk timeout')), ms))
+  ]);
 }
 
 async function vkSend(method, params) {
-  if (!vkReady) throw new Error('VK Bridge not ready');
-  return vkBridge.send(method, params || {});
+  if (!vkReady || !window.vkBridge) throw new Error('VK Bridge not ready');
+  return withTimeout(vkBridge.send(method, params || {}), 2500);
 }
 
- // ═══════════════════════════════════════════════════════════════
-//  ОРИЕНТАЦИЯ — фиксируем горизонтальную для игры
-// ═══════════════════════════════════════════════════════════════
-async function lockOrientation() {
-  try {
-    await vkSend('VKWebAppSetViewSettings', {
-      status_bar_style: 'light',
-      action_bar_color: '#1e293b',
-      navigation_bar_color: '#1e293b'
-    });
-  } catch (e) {}
-  try {
-    // Пытаемся зафиксировать landscape (работает не на всех устройствах)
-    if (screen.orientation && screen.orientation.lock) {
-      await screen.orientation.lock('landscape').catch(() => {});
-    }
-  } catch (e) {}
-}
-
-// Хранилище (VK Storage с fallback на localStorage)
 async function storageGet(key) {
   try {
     if (vkReady) {
@@ -358,12 +240,24 @@ async function storageGet(key) {
 }
 async function storageSet(key, value) {
   try {
-    if (vkReady) {
-      await vkSend('VKWebAppStorageSet', { key, value: String(value) });
-    }
+    if (vkReady) await vkSend('VKWebAppStorageSet', { key, value: String(value) });
   } catch (e) {}
   localStorage.setItem('dh_' + key, String(value));
 }
+
+function tryInitVk(attempts = 0) {
+  if (window.vkBridge) {
+    vkBridge.send('VKWebAppInit').then(() => { vkReady = true; console.log('✅ VK init'); }).catch(()=>{});
+    vkBridge.send('VKWebAppGetUserInfo').then(u => {
+      vkUser = u;
+      const g = document.getElementById('vkGreeting');
+      if (g) g.textContent = '👋 Привет, ' + u.first_name + '!';
+    }).catch(()=>{});
+  } else if (attempts < 20) {
+    setTimeout(() => tryInitVk(attempts + 1), 100);
+  }
+}
+tryInitVk();
 
 // ═══════════════════════════════════════════════════════════════
 //  CANVAS
@@ -372,14 +266,14 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const W = 800, H = 600;
 let scale = 1, offsetX = 0, offsetY = 0;
- let currentDpr = 1;   // ⬅ добавляем
+let currentDpr = 1;
 
 function resize() {
-  const winW = window.innerWidth;
-  const winH = window.innerHeight;
+  const vv = window.visualViewport;
+  const winW = vv ? vv.width : window.innerWidth;
+  const winH = vv ? vv.height : window.innerHeight;
 
   scale = Math.min(winW / W, winH / H);
-
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
   currentDpr = isMobile ? Math.min(window.devicePixelRatio || 1, 1.5) : (window.devicePixelRatio || 1);
 
@@ -387,17 +281,11 @@ function resize() {
   canvas.height = Math.floor(winH * currentDpr);
   canvas.style.width = winW + 'px';
   canvas.style.height = winH + 'px';
-  canvas.style.position = 'fixed';
-  canvas.style.top = '0';
-  canvas.style.left = '0';
 
   ctx.setTransform(currentDpr, 0, 0, currentDpr, 0, 0);
-
   offsetX = (winW - W * scale) / 2;
   offsetY = (winH - H * scale) / 2;
 
-  console.log('resize:', { winW, winH, currentDpr, scale, offsetX, offsetY });
-   // Синхронизируем UI-оверлей с областью игры
   const ui = document.getElementById('ui');
   if (ui) {
     ui.style.left = offsetX + 'px';
@@ -407,25 +295,16 @@ function resize() {
     ui.style.transform = 'scale(' + scale + ')';
   }
 }
- 
-// Все события, которые могут изменить размер экрана
+
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', () => {
-  // Даём браузеру время завершить поворот
-  setTimeout(resize, 100);
-  setTimeout(resize, 300);
-  setTimeout(resize, 600);
+  setTimeout(resize, 100); setTimeout(resize, 300); setTimeout(resize, 600);
 });
-
-// visualViewport — точный размер с учётом адресной строки на iPhone
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', resize);
   window.visualViewport.addEventListener('scroll', resize);
 }
-
-// Первый запуск
 resize();
-// И ещё раз через 100мс — на случай если размеры не успели примениться
 setTimeout(resize, 100);
 
 // ═══════════════════════════════════════════════════════════════
@@ -450,107 +329,59 @@ const sfx = {
   shoot:  () => { beep(200,0.08,'square',0.25); beep(80,0.15,'sawtooth',0.2); },
   hit:    () => { beep(900,0.1,'square',0.2); beep(1400,0.12,'square',0.15); },
   miss:   () => { beep(120,0.15,'sawtooth',0.15); },
-  reload: () => { beep(300,0.05,'square',0.1); setTimeout(()=>beep(500,0.05,'square',0.1),80); },
+  reload: () => { beep(300,0.05,'square',0.1); setTimeout(()=>beep(500,0.05,'square',0.1),80); setTimeout(()=>beep(700,0.08,'square',0.12),500); setTimeout(()=>beep(900,0.1,'square',0.15),800); },
   life:   () => { beep(600,0.1,'sine',0.2); setTimeout(()=>beep(900,0.15,'sine',0.2),100); setTimeout(()=>beep(1200,0.2,'sine',0.15),200); },
   over:   () => { beep(400,0.3,'sawtooth',0.2); setTimeout(()=>beep(300,0.3,'sawtooth',0.2),250); setTimeout(()=>beep(200,0.5,'sawtooth',0.2),500); }
 };
- // ═══════════════════════════════════════════════════════════════
-//  ФОНОВАЯ МУЗЫКА — процедурный чиптюн
+
+// ═══════════════════════════════════════════════════════════════
+//  ФОНОВАЯ МУЗЫКА
 // ═══════════════════════════════════════════════════════════════
 const Music = {
-  enabled: false,     // будет загружено из Storage
-  running: false,
-  timer: null,
-  step: 0,
-  nextTime: 0,
-  bpm: 132,
-  // 32 шага (16-е ноты) — 2 такта. 0 = пауза.
-  melody: [
-    659, 0, 659, 0, 784, 0, 659, 0,
-    587, 587, 0, 659, 0, 587, 0, 494,
-    523, 0, 523, 0, 659, 0, 784, 0,
-    784, 0, 659, 0, 587, 0, 523, 0
-  ],
-  bass: [
-    131, 0, 131, 0, 165, 0, 165, 0,
-    147, 0, 147, 0, 131, 0, 131, 0,
-    131, 0, 131, 0, 165, 0, 165, 0,
-    175, 0, 175, 0, 131, 0, 131, 0
-  ],
-
-  toggle() {
-    this.enabled = !this.enabled;
-    if (this.enabled) this.start();
-    else this.stop();
-    updateMusicBtn();
-    storageSet('music_on', this.enabled ? '1' : '0');
-  },
-
-  start() {
-    if (!actx) return;
-    if (this.running) return;
-    this.running = true;
-    this.step = 0;
-    this.nextTime = actx.currentTime + 0.1;
-    this.tick();
-  },
-
-  stop() {
-    this.running = false;
-    if (this.timer) { clearInterval(this.timer); this.timer = null; }
-  },
-  pause() {
-    if (!this.running) return;
-    this.running = false;
-    if (this.timer) { clearInterval(this.timer); this.timer = null; }
-  },
-
-  resume() {
-    if (!this.enabled) return;
-    if (this.running) return;
-    this.start();
-  },
+  enabled: true, running: false, timer: null, step: 0, nextTime: 0, bpm: 132,
+  melody: [659,0,659,0,784,0,659,0,587,587,0,659,0,587,0,494,
+           523,0,523,0,659,0,784,0,784,0,659,0,587,0,523,0],
+  bass:   [131,0,131,0,165,0,165,0,147,0,147,0,131,0,131,0,
+           131,0,131,0,165,0,165,0,175,0,175,0,131,0,131,0],
+  toggle() { this.enabled = !this.enabled; this.enabled ? this.start() : this.stop(); updateMusicBtn(); storageSet('music_on', this.enabled ? '1' : '0'); },
+  start() { if (!actx || this.running) return; this.running = true; this.step = 0; this.nextTime = actx.currentTime + 0.1; this.tick(); },
+  stop() { this.running = false; if (this.timer) { clearInterval(this.timer); this.timer = null; } },
+  pause() { if (this.timer) { clearInterval(this.timer); this.timer = null; } this.running = false; },
+  resume() { if (this.enabled && !this.running && actx) this.start(); },
   tick() {
     if (this.timer) clearInterval(this.timer);
-    const stepDur = (60 / this.bpm) / 4; // 16-я нота
+    const sd = (60 / this.bpm) / 4;
     this.timer = setInterval(() => {
       if (!this.running || !actx) return;
       while (this.nextTime < actx.currentTime + 0.15) {
         this.playStep(this.step, this.nextTime);
-        this.nextTime += stepDur;
+        this.nextTime += sd;
         this.step = (this.step + 1) % this.melody.length;
       }
     }, 30);
   },
-
   playStep(s, t) {
     const m = this.melody[s], b = this.bass[s];
     if (m) this.playNote(m, t, 0.11, 'square', 0.045);
     if (b) this.playNote(b, t, 0.20, 'triangle', 0.07);
-    if (s % 4 === 2) this.playNoise(t, 0.04); // хай-хэт
+    if (s % 4 === 2) this.playNoise(t, 0.04);
   },
-
-  playNote(freq, time, dur, type, vol) {
+  playNote(f, time, dur, type, vol) {
     const o = actx.createOscillator(), g = actx.createGain();
-    o.type = type;
-    o.frequency.value = freq;
+    o.type = type; o.frequency.value = f;
     g.gain.setValueAtTime(0, time);
     g.gain.linearRampToValueAtTime(vol, time + 0.005);
     g.gain.exponentialRampToValueAtTime(0.001, time + dur);
     o.connect(g); g.connect(actx.destination);
     o.start(time); o.stop(time + dur);
   },
-
   playNoise(time, dur) {
     const size = Math.floor(actx.sampleRate * dur);
     const buf = actx.createBuffer(1, size, actx.sampleRate);
     const d = buf.getChannelData(0);
     for (let i = 0; i < size; i++) d[i] = Math.random() * 2 - 1;
-    const src = actx.createBufferSource();
-    src.buffer = buf;
-    const hp = actx.createBiquadFilter();
-    hp.type = 'highpass';
-    hp.frequency.value = 6000;
+    const src = actx.createBufferSource(); src.buffer = buf;
+    const hp = actx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 6000;
     const g = actx.createGain();
     g.gain.setValueAtTime(0.05, time);
     g.gain.exponentialRampToValueAtTime(0.001, time + dur);
@@ -558,93 +389,51 @@ const Music = {
     src.start(time); src.stop(time + dur);
   }
 };
-
 function updateMusicBtn() {
   const btn = document.getElementById('musicBtn');
   if (!btn) return;
   btn.textContent = Music.enabled ? '🔊' : '🔇';
   btn.classList.toggle('on', Music.enabled);
 }
-
 document.getElementById('musicBtn').addEventListener('click', () => {
-  initAudio();
-  Music.toggle();
-  beep(700, 0.06, 'square', 0.15);
+  initAudio(); Music.toggle(); beep(700, 0.06, 'square', 0.15);
 });
-// ═══════════════════════════════════════════════════════════════
-//  ПАУЗА МУЗЫКИ ПРИ СВОРАЧИВАНИИ
-// ═══════════════════════════════════════════════════════════════
 
-// 1. События VK Bridge (сворачивание приложения)
+// VK events — пауза музыки и сброс в меню при возврате
 if (window.vkBridge) {
   vkBridge.subscribe(e => {
     const type = e && e.detail && e.detail.type;
     if (!type) return;
-
     if (type === 'VKWebAppViewHide') {
       Music.pause();
     } else if (type === 'VKWebAppViewRestore') {
       Music.resume();
-
-      // 🎯 Если игра была в процессе — вернём в меню
       if (state === STATE.PLAY || state === STATE.ROUND_END || state === STATE.GAME_OVER) {
-        state = STATE.MENU;
-        ducks = [];
-        particles = [];
-        floaters = [];
-        dog.state = 'hidden';
-        dog.duck = null;
-        dog.timer = 0;
+        state = STATE.MENU; ducks = []; particles = []; leaves = [];
+        dog.state = 'hidden'; dog.duck = null; dog.timer = 0;
         showScreen('menuScreen');
       }
     }
   });
 }
-
-// 2. Page Visibility API (работает в браузере и WebView)
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    Music.pause();
-  } else {
-    Music.resume();
-  }
+  if (document.hidden) Music.pause(); else Music.resume();
 });
 
-// 3. Дополнительно — окно потеряло фокус (браузер)
-window.addEventListener('blur', () => Music.pause());
-window.addEventListener('focus', () => Music.resume());
- // ═══════════════════════════════════════════════════════════════
-//  АНАЛИТИКА (сохраняется в VK Storage)
 // ═══════════════════════════════════════════════════════════════
-const stats = {
-  games: 0,
-  shots: 0,
-  hits: 0,
-  misses: 0,
-  escaped: 0,
-  rounds: 0,
-  bestScore: 0,
-  bestRound: 0,
-  bestAccuracy: 0
-};
-
+//  АНАЛИТИКА
+// ═══════════════════════════════════════════════════════════════
+const stats = { games:0, shots:0, hits:0, misses:0, escaped:0, rounds:0,
+  bestScore:0, bestRound:0, bestAccuracy:0 };
 let topScores = [];
 
 async function loadStats() {
   const raw = await storageGet('stats');
-  if (raw) {
-    try { Object.assign(stats, JSON.parse(raw)); } catch(e) {}
-  }
+  if (raw) { try { Object.assign(stats, JSON.parse(raw)); } catch(e){} }
   const topRaw = await storageGet('top_scores');
-  if (topRaw) {
-    try { topScores = JSON.parse(topRaw); } catch(e) {}
-  }
+  if (topRaw) { try { topScores = JSON.parse(topRaw); } catch(e){} }
 }
-
-async function saveStats() {
-  await storageSet('stats', JSON.stringify(stats));
-}
-
+async function saveStats() { await storageSet('stats', JSON.stringify(stats)); }
 async function addTopScore(score, round) {
   if (score <= 0) return;
   topScores.push({ score, round, date: Date.now() });
@@ -652,17 +441,14 @@ async function addTopScore(score, round) {
   topScores = topScores.slice(0, 10);
   await storageSet('top_scores', JSON.stringify(topScores));
 }
-
 async function resetStats() {
-  Object.assign(stats, {
-    games: 0, shots: 0, hits: 0, misses: 0,
-    escaped: 0, rounds: 0,
-    bestScore: 0, bestRound: 0, bestAccuracy: 0
-  });
+  Object.assign(stats, { games:0, shots:0, hits:0, misses:0, escaped:0, rounds:0,
+    bestScore:0, bestRound:0, bestAccuracy:0 });
   topScores = [];
   await storageSet('stats', JSON.stringify(stats));
   await storageSet('top_scores', '[]');
 }
+
 // ═══════════════════════════════════════════════════════════════
 //  СОСТОЯНИЕ
 // ═══════════════════════════════════════════════════════════════
@@ -670,20 +456,20 @@ const STATE = { MENU:0, PLAY:1, ROUND_END:2, GAME_OVER:3 };
 let state = STATE.MENU;
 
 const game = {
-  score: 0,
-  round: 1,
-  ammo: 3,
-  maxAmmo: 3,
-  lives: START_LIVES,
-  ducksKilled: 0,
-  ducksNeeded: 6,
-  duckSpeed: 1.2,
-  spawnTimer: 0,
-  spawnInterval: 90,
-  maxDucksOnScreen: 1,
-  reloadTimer: 0,
-  gameOverDelay: 0
+  score:0, scoreDisplay:0, round:1, ammo:3, maxAmmo:3, lives:START_LIVES,
+  ducksKilled:0, ducksNeeded:6, duckSpeed:1.2,
+  spawnTimer:0, spawnInterval:90, maxDucksOnScreen:1, reloadTimer:0
 };
+
+// Juice-эффекты
+let screenShake = 0;
+let hitStop = 0;
+let muzzleFlash = 0;
+let muzzleX = 0, muzzleY = 0;
+let lifeLostFlash = 0;
+let roundAnnounce = 0;
+let roundAnnounceText = '';
+let hitPulse = 0; // для HUD
 
 // ═══════════════════════════════════════════════════════════════
 //  УТКА
@@ -695,51 +481,72 @@ class Duck {
     this.y = 150 + Math.random() * 200;
     this.vx = this.dir * (1.5 + game.duckSpeed * 0.3 + Math.random() * 0.8);
     this.vy = (Math.random() - 0.5) * 1.5;
-    this.alive = true;
-    this.hit = false;
-    this.fallVy = 0;
-    this.rot = 0;
+    this.alive = true; this.hit = false; this.fallVy = 0; this.rot = 0;
     this.wingPhase = Math.random() * Math.PI * 2;
     this.changeTimer = 80 + Math.random() * 60;
-    this.grabbed = false;
+    this.trail = []; // трейл для красивого падения
+    this.squash = 1; // для squash&stretch
   }
   update() {
+    // Трейл при падении
+    if (this.hit && this.trail.length < 12) {
+      this.trail.push({ x: this.x, y: this.y, life: 20 });
+    }
+    for (let i = this.trail.length - 1; i >= 0; i--) {
+      this.trail[i].life--;
+      if (this.trail[i].life <= 0) this.trail.splice(i, 1);
+    }
+
     if (this.hit) {
       this.fallVy += 0.5;
       this.y += this.fallVy;
       this.rot += 0.15;
-      if (this.y > H - 60) {
-        // утка дошла до земли — ждём собаку
-        this.fallVy = 0;
-        this.y = H - 60;
-      }
+      if (this.squash < 1) this.squash += 0.05;
+      if (this.y > H - 60) { this.fallVy = 0; this.y = H - 60; }
       return;
     }
     this.x += this.vx;
     this.y += this.vy;
     this.wingPhase += 0.3;
 
-    // зигзаг — с ростом раунда утки хитрее
     this.changeTimer--;
     if (this.changeTimer <= 0) {
-      this.vx = -this.vx;
-      this.dir = -this.dir;
+      this.vx = -this.vx; this.dir = -this.dir;
       this.vy = (Math.random() - 0.5) * (1 + game.round * 0.25);
-      const base = Math.max(25, 110 - game.round * 10);
-      this.changeTimer = base + Math.random() * 40;
+      this.changeTimer = Math.max(25, 110 - game.round * 10) + Math.random() * 40;
     }
-
     if (this.y < 80) { this.y = 80; this.vy = Math.abs(this.vy); }
     if (this.y > H - 180) { this.y = H - 180; this.vy = -Math.abs(this.vy); }
-
-    if (this.x < -80 || this.x > W + 80) {
-      this.alive = false;
-      onDuckEscaped();
-    }
+    if (this.x < -80 || this.x > W + 80) { this.alive = false; onDuckEscaped(); }
+  }
+  drawShadow() {
+    // Тень на земле — эллипс, размер зависит от высоты
+    const depth = Math.max(0.1, 1 - (H - 180 - this.y) / 400);
+    const sx = this.x;
+    const sy = H * 0.72 + 20;
+    ctx.globalAlpha = 0.25 * depth;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, 22 * depth, 6 * depth, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
   }
   draw() {
+    // Трейл
+    for (const t of this.trail) {
+      ctx.globalAlpha = (t.life / 20) * 0.4;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, 4 * (t.life / 20), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
     ctx.save();
     ctx.translate(this.x, this.y);
+    if (this.squash < 1) {
+      ctx.scale(this.squash, 2 - this.squash);
+    }
     ctx.rotate(this.hit ? this.rot : 0);
     if (this.dir === -1) ctx.scale(-1, 1);
 
@@ -764,100 +571,111 @@ class Duck {
     ctx.closePath(); ctx.fill();
     ctx.fillStyle = isDown ? '#777' : '#2a1a10';
     ctx.beginPath(); ctx.moveTo(-20,-2); ctx.lineTo(-32,-6); ctx.lineTo(-30,4); ctx.closePath(); ctx.fill();
-
     ctx.restore();
   }
   checkHit(mx, my) {
     if (this.hit) return false;
     const dx = mx - this.x, dy = my - this.y;
-    return dx*dx + dy*dy < 30*30;
+    return dx*dx + dy*dy < 32*32;
   }
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  СОБАКА
+//  СОБАКА (с анонсом раунда)
 // ═══════════════════════════════════════════════════════════════
 class Dog {
   constructor() {
     this.state = 'hidden';
     this.x = 0; this.y = H - 80;
-    this.duck = null; this.timer = 0;
-    this.facing = 1; this.laughPhase = 0;
+    this.duck = null; this.timer = 0; this.facing = 1; this.laughPhase = 0;
+    this.announceRound = 1;
   }
   startFetch(duck) {
     this.duck = duck;
     this.x = duck.x < W/2 ? -60 : W + 60;
     this.y = H - 80;
     this.facing = duck.x < W/2 ? 1 : -1;
-    this.state = 'running_in';
-    this.timer = 0;
+    this.state = 'running_in'; this.timer = 0;
   }
   startLaugh() {
     this.x = W/2 + (Math.random()-0.5)*200;
     this.y = H - 40;
-    this.state = 'popping';
+    this.state = 'popping'; this.timer = 0; this.laughPhase = 0;
+  }
+  startAnnounce(round) {
+    this.announceRound = round;
+    this.x = -80;
+    this.y = H - 80;
+    this.facing = 1;
+    this.state = 'announce_in';
     this.timer = 0;
-    this.laughPhase = 0;
   }
   grab() {
     if (this.duck) { this.duck.alive = false; this.duck = null; }
-    this.y = H - 80;
-    this.state = 'grabbing';
-    this.timer = 0;
+    this.y = H - 80; this.state = 'grabbing'; this.timer = 0;
   }
   update() {
-  this.timer++;
-
-  // Сброс, если утки больше нет в игре или она мертва
-  if (this.duck && (!this.duck.alive || !ducks.includes(this.duck))) {
-    this.duck = null;
-    if (this.state === 'running_in') this.state = 'hidden';
-  }
-
-  switch (this.state) {
-    case 'running_in': {
-      if (!this.duck) { this.state = 'hidden'; return; }
-      // Страховка: если бежит больше 5 секунд — сдаться
-      if (this.timer > 300) { this.duck = null; this.state = 'hidden'; return; }
-
-      const dx = this.duck.x - this.x;
-      if (Math.abs(dx) > 8) {
-        this.facing = Math.sign(dx);
-        this.x += this.facing * 6;
-      }
-      this.y = H - 80 - Math.abs(Math.sin(this.timer * 0.3)) * 6;
-      if (this.duck.y > H - 110 && Math.abs(this.x - this.duck.x) < 40) this.grab();
-      break;
+    this.timer++;
+    if (this.duck && (!this.duck.alive || !ducks.includes(this.duck))) {
+      this.duck = null;
+      if (this.state === 'running_in') this.state = 'hidden';
     }
-    case 'grabbing':
-      if (this.timer > 20) {
-        this.state = 'running_out';
-        this.timer = 0;
-        this.facing = this.x < W / 2 ? -1 : 1;
+    switch (this.state) {
+      case 'running_in': {
+        if (!this.duck) { this.state = 'hidden'; return; }
+        if (this.timer > 300) { this.duck = null; this.state = 'hidden'; return; }
+        const dx = this.duck.x - this.x;
+        if (Math.abs(dx) > 8) { this.facing = Math.sign(dx); this.x += this.facing * 6; }
+        this.y = H - 80 - Math.abs(Math.sin(this.timer*0.3))*6;
+        if (this.duck.y > H - 110 && Math.abs(this.x - this.duck.x) < 40) this.grab();
+        break;
       }
-      break;
-    case 'running_out':
-      this.x += this.facing * 6;
-      this.y = H - 80 - Math.abs(Math.sin(this.timer * 0.3)) * 6;
-      if (this.x < -80 || this.x > W + 80) this.state = 'hidden';
-      break;
-    case 'popping':
-      if (this.timer < 20) this.y = H - 40 - this.timer * 3;
-      else if (this.timer < 95) this.laughPhase += 0.4;
-      else if (this.timer < 130) this.y += 4;
-      else this.state = 'hidden';
-      break;
+      case 'grabbing':
+        if (this.timer > 20) { this.state = 'running_out'; this.timer = 0; this.facing = this.x < W/2 ? -1 : 1; }
+        break;
+      case 'running_out':
+        this.x += this.facing * 6;
+        this.y = H - 80 - Math.abs(Math.sin(this.timer*0.3))*6;
+        if (this.x < -80 || this.x > W + 80) this.state = 'hidden';
+        break;
+      case 'popping':
+        if (this.timer < 20) this.y = H - 40 - this.timer * 3;
+        else if (this.timer < 95) this.laughPhase += 0.4;
+        else if (this.timer < 130) this.y += 4;
+        else this.state = 'hidden';
+        break;
+      case 'announce_in': {
+        this.x += 7;
+        this.y = H - 80 - Math.abs(Math.sin(this.timer*0.35))*8;
+        if (this.x >= W/2) { this.state = 'announce_show'; this.timer = 0; this.x = W/2; }
+        break;
+      }
+      case 'announce_show':
+        this.y = H - 80 - Math.abs(Math.sin(this.timer*0.1))*4;
+        if (this.timer > 90) { this.state = 'announce_out'; this.timer = 0; this.facing = -1; }
+        break;
+      case 'announce_out':
+        this.x -= 7;
+        this.y = H - 80 - Math.abs(Math.sin(this.timer*0.35))*8;
+        if (this.x < -100) this.state = 'hidden';
+        break;
+    }
   }
-}
-  
   draw() {
     if (this.state === 'hidden') return;
     ctx.save();
     ctx.translate(this.x, this.y);
     if (this.facing === -1) ctx.scale(-1, 1);
-    const walking = this.state === 'running_in' || this.state === 'running_out';
+
+    const walking = this.state === 'running_in' || this.state === 'running_out' || this.state === 'announce_in' || this.state === 'announce_out';
     const legOff = walking ? Math.sin(this.timer*0.4)*6 : 0;
 
+    // Тень
+    ctx.globalAlpha = 0.25; ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(0, 32, 30, 6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Хвост
     ctx.fillStyle = '#8a5a30';
     ctx.beginPath();
     ctx.moveTo(-26,-6);
@@ -865,14 +683,18 @@ class Dog {
     ctx.lineTo(-28,0);
     ctx.closePath(); ctx.fill();
 
+    // Лапы
     ctx.fillStyle = '#a8703a';
     ctx.fillRect(-14, 12 + legOff, 7, 14);
     ctx.fillRect(8, 12 - legOff, 7, 14);
 
+    // Тело
     ctx.fillStyle = '#c88a5a';
     ctx.beginPath(); ctx.ellipse(0,0,30,18,0,0,Math.PI*2); ctx.fill();
     ctx.fillStyle = '#e8c8a8';
     ctx.beginPath(); ctx.ellipse(2,6,22,10,0,0,Math.PI*2); ctx.fill();
+
+    // Голова
     ctx.fillStyle = '#c88a5a';
     ctx.beginPath(); ctx.arc(24,-12,14,0,Math.PI*2); ctx.fill();
     ctx.fillStyle = '#8a5a30';
@@ -894,6 +716,33 @@ class Dog {
       ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(27,-14,2,0,Math.PI*2); ctx.fill();
     }
 
+    // Табличка с номером раунда
+    if (this.state === 'announce_show' || this.state === 'announce_out') {
+      const bob = Math.sin(this.timer * 0.15) * 3;
+      ctx.save();
+      ctx.translate(-10, -60 + bob);
+      if (this.facing === -1) ctx.scale(-1, 1);
+      // палка
+      ctx.fillStyle = '#654321';
+      ctx.fillRect(-2, 20, 4, 30);
+      // табличка
+      ctx.fillStyle = '#fff';
+      ctx.strokeStyle = '#654321';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.roundRect(-35, -20, 70, 45, 6);
+      ctx.fill(); ctx.stroke();
+      // текст
+      ctx.fillStyle = '#c00';
+      ctx.font = 'bold 26px Courier New';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('R' + this.announceRound, 0, 2);
+      ctx.textBaseline = 'alphabetic';
+      ctx.restore();
+    }
+
+    // Утка в пасти
     if (this.state === 'grabbing' || this.state === 'running_out') {
       ctx.save();
       ctx.translate(-2, -22);
@@ -918,56 +767,71 @@ const dog = new Dog();
 let ducks = [];
 let particles = [];
 let floaters = [];
-let lifeLostFlash = 0;
- 
+let leaves = [];
+let birds = [];
+
 // ═══════════════════════════════════════════════════════════════
-//  ЧАСТИЦЫ
+//  ЧАСТИЦЫ / ЛИСТЬЯ / ПТИЦЫ / ТРАВА
 // ═══════════════════════════════════════════════════════════════
 function spawnFeathers(x, y) {
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 14; i++) {
     particles.push({
       x, y,
-      vx: (Math.random()-0.5)*4,
-      vy: (Math.random()-0.5)*4 - 1,
-      life: 40 + Math.random()*20, maxLife: 60,
-      size: 3 + Math.random()*3, color: '#ddd'
+      vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5 - 1,
+      life: 40 + Math.random()*25, maxLife: 65,
+      size: 3 + Math.random()*3, color: '#ddd',
+      rot: Math.random()*Math.PI, rotSpeed: (Math.random()-0.5)*0.3
     });
   }
 }
 function spawnShotParticles(x, y) {
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 10; i++) {
     particles.push({
       x, y,
-      vx: (Math.random()-0.5)*8,
-      vy: (Math.random()-0.5)*8,
-      life: 15, maxLife: 15,
-      size: 2, color: '#ffdd44'
+      vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12,
+      life: 15, maxLife: 15, size: 2 + Math.random()*2, color: '#ffdd44'
     });
   }
 }
-function updateParticles() {
-  for (let i = particles.length-1; i >= 0; i--) {
-    const p = particles[i];
-    p.x += p.vx; p.y += p.vy;
-    p.vy += 0.1; p.vx *= 0.98;
-    p.life--;
-    if (p.life <= 0) particles.splice(i, 1);
+function spawnLeaves() {
+  if (leaves.length < 12 && Math.random() < 0.03) {
+    leaves.push({
+      x: Math.random() * W,
+      y: -20,
+      vx: (Math.random()-0.5)*0.6,
+      vy: 0.5 + Math.random()*0.5,
+      rot: Math.random()*Math.PI,
+      rotSpeed: (Math.random()-0.5)*0.05,
+      size: 6 + Math.random()*4,
+      color: ['#a0522d','#8b4513','#cd853f','#d2691e'][Math.floor(Math.random()*4)],
+      sway: Math.random()*Math.PI*2
+    });
   }
 }
-function drawParticles() {
-  for (const p of particles) {
-    ctx.globalAlpha = p.life / p.maxLife;
-    ctx.fillStyle = p.color || '#ddd';
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+function initBirds() {
+  birds = [];
+  for (let i = 0; i < 4; i++) {
+    birds.push({
+      x: Math.random() * W,
+      y: 40 + Math.random() * 80,
+      speed: 0.3 + Math.random() * 0.4,
+      wingPhase: Math.random() * Math.PI * 2,
+      size: 6 + Math.random() * 4
+    });
   }
-  ctx.globalAlpha = 1;
 }
-function showFloater(text, x, y, color, size) {
-  floaters.push({
-    text, x, y,
-    life: 70,
-    color: color || '#ffe066',
-    size: size || 22
+initBirds();
+
+// Трава — предзаполненный массив
+const grassBlades = [];
+for (let i = 0; i < 80; i++) {
+  grassBlades.push({
+    x: Math.random() * (W + 20) - 10,
+    y: H * 0.72 + Math.random() * (H * 0.28),
+    h: 8 + Math.random() * 10,
+    phase: Math.random() * Math.PI * 2,
+    speed: 0.02 + Math.random() * 0.03,
+    color: ['#3d7028','#4a8a3a','#2d5a1e'][Math.floor(Math.random()*3)]
   });
 }
 
@@ -991,7 +855,7 @@ canvas.addEventListener('mousedown', e => {
   initAudio();
   const p = toGameCoords(e.clientX, e.clientY);
   crosshair.x = p.x; crosshair.y = p.y;
-  if (state === STATE.PLAY) shoot();
+  if (state === STATE.PLAY && hitStop <= 0) shoot();
 });
 canvas.addEventListener('touchmove', e => {
   e.preventDefault();
@@ -1005,7 +869,7 @@ canvas.addEventListener('touchstart', e => {
   const t = e.touches[0];
   const p = toGameCoords(t.clientX, t.clientY);
   crosshair.x = p.x; crosshair.y = p.y;
-  if (state === STATE.PLAY) shoot();
+  if (state === STATE.PLAY && hitStop <= 0) shoot();
 }, { passive: false });
 
 // ═══════════════════════════════════════════════════════════════
@@ -1013,30 +877,46 @@ canvas.addEventListener('touchstart', e => {
 // ═══════════════════════════════════════════════════════════════
 function shoot() {
   if (game.ammo <= 0 || game.reloadTimer > 0) { sfx.miss(); return; }
-    game.ammo--;
-  stats.shots++;     // ← добавил
+  game.ammo--;
+  stats.shots++;
   sfx.shoot();
   crosshair.pulse = 1;
+
+  // Muzzle flash в точке прицела
+  muzzleX = crosshair.x;
+  muzzleY = crosshair.y;
+  muzzleFlash = 1;
+
+  // Тряска экрана
+  screenShake = 8;
+
   spawnShotParticles(crosshair.x, crosshair.y);
 
   let hit = false;
   for (const d of ducks) {
     if (d.checkHit(crosshair.x, crosshair.y)) {
       d.hit = true;
-      d.fallVy = -3;
+      d.fallVy = -4;
+      d.squash = 0.5; // squash эффект
       spawnFeathers(d.x, d.y);
       sfx.hit();
       hit = true;
       game.score += 100 * game.round;
       game.ducksKilled++;
-            showFloater('+' + (100*game.round), d.x, d.y);
-      stats.hits++;                                    // ← добавил
+      stats.hits++;
+      hitPulse = 1;
+      showFloater('+' + (100*game.round), d.x, d.y);
       if (dog.state === 'hidden') dog.startFetch(d);
       break;
     }
   }
-    if (!hit) { stats.misses++; sfx.miss(); }        // ← добавил stats.misses++
-  saveStats();                                     // ← добавил
+  if (!hit) { stats.misses++; sfx.miss(); }
+  else {
+    // HIT-STOP: 4 кадра полной остановки при попадании
+    hitStop = 4;
+    screenShake = 12;
+  }
+  saveStats();
 
   if (game.ammo <= 0) {
     game.reloadTimer = 90;
@@ -1050,60 +930,42 @@ function shoot() {
 function onDuckEscaped() {
   stats.escaped++;
   game.lives--;
-
-  // 🎨 Красная вспышка по всему экрану
   lifeLostFlash = 1;
-
-  // 💔 Крупная надпись в центре
-  showFloater('− 1 ЖИЗНЬ', W / 2, H / 2, '#ef4444', 42);
-
-  // 🔊 Двойной неприятный звук
+  showFloater('− 1 ЖИЗНЬ', W/2, H/2, '#ef4444', 42);
   beep(200, 0.15, 'sawtooth', 0.3);
   setTimeout(() => beep(150, 0.25, 'sawtooth', 0.25), 120);
-
-  // 🐕 Собака смеётся
   if (dog.state === 'hidden') dog.startLaugh();
-
   if (game.lives <= 0) triggerGameOver();
 }
 
 function triggerGameOver() {
   state = STATE.GAME_OVER;
   sfx.over();
-
-  // ── Обновляем рекорды ──
   if (game.score > stats.bestScore) stats.bestScore = game.score;
   if (game.round > stats.bestRound) stats.bestRound = game.round;
   const acc = stats.shots > 0 ? Math.round(stats.hits / stats.shots * 100) : 0;
   if (acc > stats.bestAccuracy) stats.bestAccuracy = acc;
   addTopScore(game.score, game.round);
   saveStats();
-  // ─────────────────────
+
   document.getElementById('finalScore').textContent = game.score;
   document.getElementById('finalRound').textContent = game.round;
-  setTimeout(() => {
-    showScreen('gameoverScreen');
-  }, 800);
+  setTimeout(() => showScreen('gameoverScreen'), 800);
 }
 
 function startGame() {
   initAudio();
   state = STATE.PLAY;
-  game.score = 0;
-  game.round = 1;
-  game.lives = START_LIVES;
-  game.ammo = game.maxAmmo;
-  game.reloadTimer = 0;
-  game.spawnTimer = 30;
-  game.spawnInterval = 90;
-  game.duckSpeed = 1.2;
-  game.maxDucksOnScreen = 1;
-  game.ducksKilled = 0;
-  game.ducksNeeded = 6;
-  ducks = []; particles = []; floaters = [];
-    dog.state = 'hidden'; dog.duck = null; dog.timer = 0;
+  game.score = 0; game.scoreDisplay = 0; game.round = 1; game.lives = START_LIVES;
+  game.ammo = game.maxAmmo; game.reloadTimer = 0;
+  game.spawnTimer = 30; game.spawnInterval = 90; game.duckSpeed = 1.2;
+  game.maxDucksOnScreen = 1; game.ducksKilled = 0; game.ducksNeeded = 6;
+  ducks = []; particles = []; floaters = []; leaves = [];
+  dog.state = 'hidden'; dog.duck = null; dog.timer = 0;
+  lifeLostFlash = 0; screenShake = 0; hitStop = 0;
+  roundAnnounce = 0;
   showScreen(null);
-   stats.games++;
+  stats.games++;
   saveStats();
 }
 
@@ -1115,29 +977,58 @@ function nextRound() {
   game.ducksNeeded += 2;
   game.spawnInterval = Math.max(40, game.spawnInterval - 12);
   game.maxDucksOnScreen = Math.min(2, 1 + Math.floor(game.round / 3));
-  game.ammo = game.maxAmmo;
-  game.reloadTimer = 0;
+  game.ammo = game.maxAmmo; game.reloadTimer = 0;
   state = STATE.PLAY;
   ducks = [];
-  // ⬇ Сброс собаки, чтобы не топталась на месте
-  dog.state = 'hidden';
-  dog.duck = null;
-  dog.timer = 0;
+  dog.state = 'hidden'; dog.duck = null; dog.timer = 0;
+  lifeLostFlash = 0; screenShake = 0; hitStop = 0;
+
+  // Собака объявляет новый раунд
+  dog.startAnnounce(game.round);
+  roundAnnounce = 1;
+  roundAnnounceText = 'РАУНД ' + game.round;
+
+  // Небольшая пауза перед спавном
+  game.spawnTimer = 180;
 }
 
 // ═══════════════════════════════════════════════════════════════
 //  ОБНОВЛЕНИЕ
 // ═══════════════════════════════════════════════════════════════
 function update() {
-  dog.update();
-   if (lifeLostFlash > 0) lifeLostFlash -= 0.02 * (typeof dt !== 'undefined' ? dt : 1);
-  if (lifeLostFlash < 0) lifeLostFlash = 0;
-  if (crosshair.pulse > 0) crosshair.pulse -= 0.08;
-  updateParticles();
+  // Тряска и прочие juice
+  if (screenShake > 0) screenShake = Math.max(0, screenShake - 0.7);
+  if (muzzleFlash > 0) muzzleFlash = Math.max(0, muzzleFlash - 0.15);
+  if (lifeLostFlash > 0) lifeLostFlash = Math.max(0, lifeLostFlash - 0.02);
+  if (crosshair.pulse > 0) crosshair.pulse = Math.max(0, crosshair.pulse - 0.08);
+  if (hitPulse > 0) hitPulse = Math.max(0, hitPulse - 0.05);
 
-  for (let i = floaters.length-1; i >= 0; i--) {
-    floaters[i].y -= 0.8;
-    floaters[i].life--;
+  // Плавный счётчик очков
+  if (game.scoreDisplay !== game.score) {
+    const diff = game.score - game.scoreDisplay;
+    game.scoreDisplay += Math.sign(diff) * Math.max(1, Math.abs(diff) * 0.15);
+    if (Math.abs(game.score - game.scoreDisplay) < 1) game.scoreDisplay = game.score;
+  }
+
+  // Анимация анонса раунда
+  if (roundAnnounce > 0) roundAnnounce = Math.max(0, roundAnnounce - 0.008);
+
+  // HIT-STOP: короткая пауза всего геймплея
+  if (hitStop > 0) {
+    hitStop--;
+    updateParticles();
+    updateLeaves();
+    dog.update();
+    return;
+  }
+
+  dog.update();
+  updateParticles();
+  updateLeaves();
+  updateBirds();
+
+  for (let i = floaters.length - 1; i >= 0; i--) {
+    floaters[i].y -= 0.8; floaters[i].life--;
     if (floaters[i].life <= 0) floaters.splice(i, 1);
   }
 
@@ -1156,7 +1047,7 @@ function update() {
     }
   }
 
-  for (let i = ducks.length-1; i >= 0; i--) {
+  for (let i = ducks.length - 1; i >= 0; i--) {
     ducks[i].update();
     if (!ducks[i].alive) ducks.splice(i, 1);
   }
@@ -1170,15 +1061,53 @@ function update() {
   }
 }
 
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.1; p.vx *= 0.98;
+    if (p.rot !== undefined) p.rot += p.rotSpeed;
+    p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+function updateLeaves() {
+  spawnLeaves();
+  for (let i = leaves.length - 1; i >= 0; i--) {
+    const l = leaves[i];
+    l.sway += 0.05;
+    l.x += l.vx + Math.sin(l.sway) * 0.3;
+    l.y += l.vy;
+    l.rot += l.rotSpeed;
+    if (l.y > H + 20) leaves.splice(i, 1);
+  }
+}
+function updateBirds() {
+  for (const b of birds) {
+    b.x -= b.speed;
+    b.wingPhase += 0.15;
+    if (b.x < -20) {
+      b.x = W + 20;
+      b.y = 40 + Math.random() * 80;
+      b.speed = 0.3 + Math.random() * 0.4;
+    }
+  }
+}
+
+function showFloater(text, x, y, color, size) {
+  floaters.push({ text, x, y, life: 70, color: color || '#ffe066', size: size || 22 });
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  ОТРИСОВКА
 // ═══════════════════════════════════════════════════════════════
 function drawSky() {
-  const g = ctx.createLinearGradient(0, 0, 0, H*0.7);
+  const g = ctx.createLinearGradient(0, -20, 0, H*0.7);
   g.addColorStop(0, '#4a90d9');
   g.addColorStop(0.5, '#87ceeb');
   g.addColorStop(1, '#c5e8f7');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H*0.7);
+  ctx.fillStyle = g;
+  ctx.fillRect(-20, -20, W + 40, H*0.7 + 20);
 }
 function drawClouds(t) {
   ctx.fillStyle = 'rgba(255,255,255,0.75)';
@@ -1196,20 +1125,17 @@ function drawClouds(t) {
     ctx.fill();
   }
 }
-function drawGround() {
-  const g = ctx.createLinearGradient(0, H*0.7, 0, H);
-  g.addColorStop(0, '#4a8a3a'); g.addColorStop(1, '#2d5a1e');
-  ctx.fillStyle = g; ctx.fillRect(0, H*0.7, W, H*0.3);
-  ctx.fillStyle = '#2d5016';
-  for (let i = 0; i < 8; i++) {
+function drawBirds() {
+  ctx.strokeStyle = 'rgba(30,30,30,0.55)';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  for (const b of birds) {
+    const wing = Math.sin(b.wingPhase) * 4;
     ctx.beginPath();
-    ctx.arc(i*110 + 30, H*0.7+10, 30, Math.PI, 0);
-    ctx.fill();
-  }
-  ctx.strokeStyle = '#3d7028'; ctx.lineWidth = 2;
-  for (let i = 0; i < 60; i++) {
-    const x = i*14, y = H*0.72 + (i%3)*5;
-    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+4, y-8); ctx.stroke();
+    ctx.moveTo(b.x - b.size, b.y + wing);
+    ctx.quadraticCurveTo(b.x - b.size/2, b.y - 3, b.x, b.y);
+    ctx.quadraticCurveTo(b.x + b.size/2, b.y - 3, b.x + b.size, b.y + wing);
+    ctx.stroke();
   }
 }
 function drawTree() {
@@ -1222,29 +1148,97 @@ function drawTree() {
   ctx.arc(80, H*0.5, 35, 0, Math.PI*2);
   ctx.fill();
 }
+function drawGround() {
+  const g = ctx.createLinearGradient(0, H*0.7, 0, H + 20);
+  g.addColorStop(0, '#4a8a3a'); g.addColorStop(1, '#2d5a1e');
+  ctx.fillStyle = g;
+  ctx.fillRect(-20, H*0.7, W + 40, H*0.3 + 20);
+  // Кусты
+  ctx.fillStyle = '#2d5016';
+  for (let i = 0; i < 8; i++) {
+    ctx.beginPath();
+    ctx.arc(i*110 + 30, H*0.7+10, 30, Math.PI, 0);
+    ctx.fill();
+  }
+}
+function drawGrass(t) {
+  for (const b of grassBlades) {
+    const sway = Math.sin(t * b.speed + b.phase) * 3;
+    ctx.strokeStyle = b.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(b.x, b.y);
+    ctx.quadraticCurveTo(b.x + sway*0.5, b.y - b.h*0.6, b.x + sway, b.y - b.h);
+    ctx.stroke();
+  }
+}
+function drawLeaves() {
+  for (const l of leaves) {
+    ctx.save();
+    ctx.translate(l.x, l.y);
+    ctx.rotate(l.rot);
+    ctx.fillStyle = l.color;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, l.size, l.size * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+function drawParticles() {
+  for (const p of particles) {
+    ctx.globalAlpha = p.life / p.maxLife;
+    ctx.fillStyle = p.color || '#ddd';
+    if (p.rot !== undefined) {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size * 0.6);
+      ctx.restore();
+    } else {
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
 function drawHUD() {
-  // Счёт
+  // SCORE — плавное значение + подпрыгивание при попадании
+  const scoreScale = 1 + hitPulse * 0.2;
+  ctx.save();
+  ctx.translate(20, 40);
+  ctx.scale(scoreScale, scoreScale);
+  ctx.font = 'bold 26px Courier New';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
+  ctx.strokeText('SCORE: ' + Math.round(game.scoreDisplay), 0, 0);
+  ctx.fillText('SCORE: ' + Math.round(game.scoreDisplay), 0, 0);
+  ctx.restore();
+
+  ctx.textAlign = 'left';
   ctx.font = 'bold 26px Courier New';
   ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
-  ctx.textAlign = 'left';
-  ctx.strokeText('SCORE: ' + game.score, 20, 40);
-  ctx.fillText('SCORE: ' + game.score, 20, 40);
-
   ctx.strokeText('УТОК: ' + game.ducksKilled + ' / ' + game.ducksNeeded, 20, 72);
   ctx.fillText('УТОК: ' + game.ducksKilled + ' / ' + game.ducksNeeded, 20, 72);
 
-  // Жизни (сердечки)
-  const heartsX = 20, heartsY = 92;
+  // Сердечки с пульсацией
+  const now = performance.now() * 0.003;
   for (let i = 0; i < game.lives; i++) {
-    const x = heartsX + i * 26;
+    const x = 20 + i * 26;
+    const pulse = 1 + Math.sin(now + i * 0.6) * 0.08;
+    ctx.save();
+    ctx.translate(x + 10, 100);
+    ctx.scale(pulse, pulse);
     ctx.font = '22px Arial';
-    ctx.fillText('❤️', x, heartsY + 20);
+    ctx.textAlign = 'center';
+    ctx.fillText('❤️', 0, 0);
+    ctx.restore();
   }
 
-  // Раунд
+  // ROUND
   ctx.textAlign = 'right';
-  ctx.strokeText('ROUND ' + game.round, W-30, 40);
-  ctx.fillText('ROUND ' + game.round, W-30, 40);
+  ctx.font = 'bold 26px Courier New';
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
+  ctx.strokeText('ROUND ' + game.round, W - 30, 40);
+  ctx.fillText('ROUND ' + game.round, W - 30, 40);
 
   // Патроны
   const startX = W - 30, startY = 80;
@@ -1256,12 +1250,17 @@ function drawHUD() {
     ctx.fillRect(x-5, startY+5, 10, 5);
   }
 
-  // Текст перезарядки
   if (game.reloadTimer > 0) {
-    ctx.textAlign = 'right';
-    ctx.font = 'bold 16px Courier New';
+    const total = 90;
+    const progress = 1 - (game.reloadTimer / total);
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(W - 160, 110, 130, 16);
     ctx.fillStyle = '#f87171';
-    ctx.fillText('ПЕРЕЗАРЯДКА...', W-30, 125);
+    ctx.fillRect(W - 158, 112, 126 * progress, 12);
+    ctx.textAlign = 'right';
+    ctx.font = 'bold 14px Courier New';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('ПЕРЕЗАРЯДКА', W - 30, 145);
   }
 }
 function drawCrosshair() {
@@ -1278,6 +1277,18 @@ function drawCrosshair() {
   ctx.fillStyle = '#ff3333';
   ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI*2); ctx.fill();
 }
+function drawMuzzleFlash() {
+  if (muzzleFlash <= 0) return;
+  const r = 30 * muzzleFlash;
+  const g = ctx.createRadialGradient(muzzleX, muzzleY, 0, muzzleX, muzzleY, r);
+  g.addColorStop(0, 'rgba(255,255,180,' + muzzleFlash + ')');
+  g.addColorStop(0.4, 'rgba(255,180,50,' + (muzzleFlash*0.7) + ')');
+  g.addColorStop(1, 'rgba(255,100,0,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(muzzleX, muzzleY, r, 0, Math.PI * 2);
+  ctx.fill();
+}
 function drawFloaters() {
   ctx.textAlign = 'center';
   for (const f of floaters) {
@@ -1291,6 +1302,23 @@ function drawFloaters() {
     ctx.fillText(f.text, f.x, f.y);
   }
   ctx.globalAlpha = 1;
+}
+function drawRoundAnnounce() {
+  if (roundAnnounce <= 0) return;
+  const t = 1 - roundAnnounce;
+  const ease = t < 0.3 ? t / 0.3 : (t > 0.7 ? (1 - t) / 0.3 : 1);
+  const size = 60 * ease;
+  ctx.save();
+  ctx.globalAlpha = ease;
+  ctx.translate(W/2, H*0.35);
+  ctx.font = 'bold ' + size + 'px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffe066';
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 8;
+  ctx.strokeText(roundAnnounceText, 0, 0);
+  ctx.fillText(roundAnnounceText, 0, 0);
+  ctx.restore();
 }
 function drawRoundEnd() {
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -1313,23 +1341,30 @@ function drawRoundEnd() {
 let time = 0;
 function draw() {
   time++;
-  ctx.save();
-
   drawSky();
   drawClouds(time);
+  drawBirds();
   drawTree();
   drawGround();
+  drawGrass(time);
 
+  // Тени уток
+  for (const d of ducks) d.drawShadow();
+  // Утки
   for (const d of ducks) d.draw();
   dog.draw();
+  drawLeaves();
   drawParticles();
+  drawMuzzleFlash();
 
   if (state === STATE.PLAY || state === STATE.ROUND_END || state === STATE.GAME_OVER) {
     drawHUD();
   }
 
   drawFloaters();
-   // Красная вспышка при потере жизни
+  drawRoundAnnounce();
+
+  // Красная вспышка при потере жизни
   if (lifeLostFlash > 0) {
     ctx.fillStyle = 'rgba(220, 38, 38, ' + (lifeLostFlash * 0.35) + ')';
     ctx.fillRect(0, 0, W, H);
@@ -1337,8 +1372,6 @@ function draw() {
 
   if (state === STATE.ROUND_END) drawRoundEnd();
   if (state === STATE.PLAY) drawCrosshair();
-
-  ctx.restore();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1346,43 +1379,53 @@ function draw() {
 // ═══════════════════════════════════════════════════════════════
 function loop() {
   update();
-  ctx.save();
-  ctx.setTransform(currentDpr, 0, 0, currentDpr, 0, 0);   // ⬅ используем currentDpr
-  ctx.translate(offsetX, offsetY);
+
+  // Очистка
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Shake transform
+  const shakeX = screenShake > 0 ? (Math.random() - 0.5) * screenShake : 0;
+  const shakeY = screenShake > 0 ? (Math.random() - 0.5) * screenShake : 0;
+
+  ctx.setTransform(currentDpr, 0, 0, currentDpr, 0, 0);
+  ctx.translate(offsetX + shakeX, offsetY + shakeY);
   ctx.scale(scale, scale);
-  ctx.clearRect(0, 0, W, H);
+  ctx.beginPath();
+  ctx.rect(-20, -20, W + 40, H + 40);
+  ctx.clip();
   draw();
   ctx.restore();
 
-  // Чёрные полосы (letterbox) вокруг игры — тоже через currentDpr
+  // Letterbox
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (offsetX > 0 || offsetY > 0) {
     ctx.fillStyle = '#0a0a1a';
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    const vw = canvas.width;
+    const vh = canvas.height;
     if (offsetX > 0) {
-      ctx.fillRect(0, 0, offsetX, vh);
-      ctx.fillRect(vw - offsetX, 0, offsetX, vh);
+      const ox = offsetX * currentDpr;
+      ctx.fillRect(0, 0, ox, vh);
+      ctx.fillRect(vw - ox, 0, ox, vh);
     }
     if (offsetY > 0) {
-      ctx.fillRect(0, 0, vw, offsetY);
-      ctx.fillRect(0, vh - offsetY, vw, offsetY);
+      const oy = offsetY * currentDpr;
+      ctx.fillRect(0, 0, vw, oy);
+      ctx.fillRect(0, vh - oy, vw, oy);
     }
   }
+
   requestAnimationFrame(loop);
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  UI / ЭКРАНЫ
+//  UI
 // ═══════════════════════════════════════════════════════════════
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('show'));
   if (name) document.getElementById(name).classList.add('show');
-
-  // Показываем мини-кнопку «✕» только во время игры
   const q = document.getElementById('quickExit');
-  if (q) {
-    q.style.display = (state === STATE.PLAY && !name) ? 'block' : 'none';
-  }
+  if (q) q.style.display = (state === STATE.PLAY && !name) ? 'block' : 'none';
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1396,55 +1439,143 @@ const BONUSES = [
   { id: 'favorite', icon:'⭐', label:'Добавить в избранное',        reward:1,
     vk: () => vkSend('VKWebAppAddToFavorites') },
   { id: 'story', icon: '📸', label: 'Опубликовать историю', reward: 2,
-  vk: () => {
-    // Генерируем картинку с текущим результатом
-    const dataUrl = generateStoryImage();
-    return vkSend('VKWebAppShowStoryBox', {
-      background_type: 'image',
-      blob: dataUrl,
-      attachment: {
-        text: 'Играть',
-        type: 'url',
-        url: 'https://vk.com/app' + VK_APP_ID
-      }
-    });
-  }
-},
+    vk: () => {
+      const dataUrl = generateStoryImage();
+      return vkSend('VKWebAppShowStoryBox', {
+        background_type: 'image',
+        blob: dataUrl,
+        attachment: {
+          text: 'Играть', type: 'url',
+          url: 'https://vk.com/app' + VK_APP_ID
+        }
+      });
+    }
+  },
   { id: 'like',     icon:'❤️', label:'Поставить лайк посту',       reward:1,
     vk: () => openVkLink('https://vk.com/wall-' + VK_GROUP_ID + '_' + VK_POST_ID) },
   { id: 'comment',  icon:'💬', label:'Оставить комментарий',        reward:1,
     vk: () => openVkLink('https://vk.com/wall-' + VK_GROUP_ID + '_' + VK_POST_ID) }
 ];
 
+function generateStoryImage() {
+  const c = document.createElement('canvas');
+  c.width = 1080; c.height = 1920;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 0, 1920);
+  grad.addColorStop(0, '#4a90d9'); grad.addColorStop(1, '#c5e8f7');
+  g.fillStyle = grad; g.fillRect(0, 0, 1080, 1920);
+  g.fillStyle = '#4a8a3a'; g.fillRect(0, 1400, 1080, 520);
+  g.font = 'bold 100px "Courier New", monospace';
+  g.fillStyle = '#ffe066'; g.strokeStyle = '#000'; g.lineWidth = 12;
+  g.textAlign = 'center';
+  g.strokeText('🦆 ОХОТА НА УТОК', 540, 380);
+  g.fillText('🦆 ОХОТА НА УТОК', 540, 380);
+  g.font = 'bold 80px "Courier New", monospace';
+  g.fillStyle = '#fff'; g.lineWidth = 8;
+  g.strokeText('СЧЁТ: ' + game.score, 540, 600); g.fillText('СЧЁТ: ' + game.score, 540, 600);
+  g.strokeText('РАУНД: ' + game.round, 540, 720); g.fillText('РАУНД: ' + game.round, 540, 720);
+  g.font = 'bold 60px "Courier New", monospace';
+  g.fillStyle = '#4ade80'; g.lineWidth = 6;
+  g.strokeText('Попробуй побить мой рекорд!', 540, 900);
+  g.fillText('Попробуй побить мой рекорд!', 540, 900);
+  return c.toDataURL('image/png');
+}
+
 async function openVkLink(url) {
   try {
     if (vkReady) await vkSend('VKWebAppOpenLink', { link: url });
     else window.open(url, '_blank');
-  } catch (e) {
-    window.open(url, '_blank');
-  }
+  } catch (e) { window.open(url, '_blank'); }
 }
 
-// Кэш полученных бонусов
 const claimed = {};
-
 async function loadClaimed() {
   for (const b of BONUSES) {
     const v = await storageGet('bonus_' + b.id);
     claimed[b.id] = v === '1';
   }
 }
+
+async function renderBonusList() {
+  const el = document.getElementById('bonusList');
+  el.innerHTML = '';
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  for (const b of BONUSES) {
+    const isClaimed = !!claimed[b.id];
+    const isStoryOnDesktop = b.id === 'story' && !isMobile;
+    const div = document.createElement('div');
+    div.className = 'bonus-item' + (isClaimed ? ' claimed' : '');
+    div.innerHTML =
+      '<div class="icon">' + b.icon + '</div>' +
+      '<div class="info">' +
+        '<div class="label">' + b.label + '</div>' +
+        '<div class="reward">' + (isStoryOnDesktop
+          ? '📱 Доступно только в мобильном приложении VK'
+          : '+' + b.reward + ' ❤️ жизн' + (b.reward === 1 ? 'ь' : 'и')) + '</div>' +
+      '</div>' +
+      '<button ' + (isClaimed || isStoryOnDesktop ? 'disabled' : '') + ' data-bonus="' + b.id + '">' +
+        (isClaimed ? '✓ Получено' : isStoryOnDesktop ? '📱 VK Mobile' : 'Получить') +
+      '</button>';
+    el.appendChild(div);
+  }
+  el.querySelectorAll('button[data-bonus]').forEach(btn => {
+    btn.addEventListener('click', () => claimBonus(btn.dataset.bonus));
+  });
+}
+
+async function claimBonus(id) {
+  const b = BONUSES.find(x => x.id === id);
+  if (!b || claimed[id]) return;
+  const loader = document.getElementById('bonusLoader');
+  loader.textContent = '⏳ Ожидание действия...';
+  let ok = false;
+  try { await b.vk(); ok = true; }
+  catch (e) {
+    console.log('Bonus error:', e);
+    if (b.id === 'story') ok = false;
+    else ok = true;
+  }
+  if (ok) {
+    claimed[id] = true;
+    await storageSet('bonus_' + id, '1');
+    if (state === STATE.GAME_OVER) {
+      startGameWithBonus(b.reward);
+    } else if (state === STATE.PLAY) {
+      game.lives += b.reward;
+      for (let i = 0; i < b.reward; i++) showFloater('+1 ❤️', W/2 + i*40 - 20, H - 100, '#4ade80', 28);
+    } else {
+      pendingBonusLives += b.reward;
+    }
+    sfx.life();
+    loader.textContent = '✅ Получено +' + b.reward + ' ❤️';
+    setTimeout(() => { loader.textContent = ''; }, 2000);
+    renderBonusList();
+  } else {
+    loader.textContent = '❌ Не удалось';
+    setTimeout(() => { loader.textContent = ''; }, 2000);
+  }
+}
+
+let pendingBonusLives = 0;
+function startGameWithBonus(extraLives) {
+  startGame();
+  game.lives = START_LIVES + extraLives;
+  for (let i = 0; i < extraLives; i++) showFloater('+1 ❤️', W/2 + i*40 - 20, H - 100, '#4ade80', 28);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  РЕКОРДЫ
+// ═══════════════════════════════════════════════════════════════
 async function renderLeader() {
   const grid = document.getElementById('statsGrid');
   const acc = stats.shots > 0 ? Math.round(stats.hits / stats.shots * 100) : 0;
-  grid.innerHTML = `
-    <div class="stat-card"><div class="k">Игр</div><div class="v">${stats.games}</div></div>
-    <div class="stat-card"><div class="k">Выстрелов</div><div class="v">${stats.shots}</div></div>
-    <div class="stat-card"><div class="k">Попаданий</div><div class="v">${stats.hits}</div></div>
-    <div class="stat-card"><div class="k">Точность</div><div class="v">${acc}%</div></div>
-    <div class="stat-card"><div class="k">Лучший счёт</div><div class="v">${stats.bestScore}</div></div>
-    <div class="stat-card"><div class="k">Лучший раунд</div><div class="v">${stats.bestRound}</div></div>
-  `;
+  grid.innerHTML =
+    '<div class="stat-card"><div class="k">Игр</div><div class="v">' + stats.games + '</div></div>' +
+    '<div class="stat-card"><div class="k">Выстрелов</div><div class="v">' + stats.shots + '</div></div>' +
+    '<div class="stat-card"><div class="k">Попаданий</div><div class="v">' + stats.hits + '</div></div>' +
+    '<div class="stat-card"><div class="k">Точность</div><div class="v">' + acc + '%</div></div>' +
+    '<div class="stat-card"><div class="k">Лучший счёт</div><div class="v">' + stats.bestScore + '</div></div>' +
+    '<div class="stat-card"><div class="k">Лучший раунд</div><div class="v">' + stats.bestRound + '</div></div>';
 
   const list = document.getElementById('topList');
   if (topScores.length === 0) {
@@ -1462,140 +1593,9 @@ async function renderLeader() {
     }).join('');
   }
 }
- function generateStoryImage() {
-  const c = document.createElement('canvas');
-  c.width = 1080;
-  c.height = 1920;
-  const g = c.getContext('2d');
-
-  // Фон — небо
-  const grad = g.createLinearGradient(0, 0, 0, 1920);
-  grad.addColorStop(0, '#4a90d9');
-  grad.addColorStop(1, '#c5e8f7');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, 1080, 1920);
-
-  // Земля
-  g.fillStyle = '#4a8a3a';
-  g.fillRect(0, 1400, 1080, 520);
-
-  // Логотип
-  g.font = 'bold 110px "Courier New", monospace';
-  g.fillStyle = '#ffe066';
-  g.strokeStyle = '#000';
-  g.lineWidth = 12;
-  g.textAlign = 'center';
-  g.strokeText('🦆 ОХОТА НА УТОК', 540, 380);
-  g.fillText('🦆 ОХОТА НА УТОК', 540, 380);
-
-  // Счёт и раунд
-  g.font = 'bold 80px "Courier New", monospace';
-  g.fillStyle = '#fff';
-  g.strokeStyle = '#000';
-  g.lineWidth = 8;
-  const scoreText = 'СЧЁТ: ' + game.score;
-  const roundText = 'РАУНД: ' + game.round;
-  g.strokeText(scoreText, 540, 600);
-  g.fillText(scoreText, 540, 600);
-  g.strokeText(roundText, 540, 720);
-  g.fillText(roundText, 540, 720);
-
-  // Призыв
-  g.font = 'bold 60px "Courier New", monospace';
-  g.fillStyle = '#4ade80';
-  g.strokeStyle = '#000';
-  g.lineWidth = 6;
-  g.strokeText('Попробуй побить мой рекорд!', 540, 900);
-  g.fillText('Попробуй побить мой рекорд!', 540, 900);
-
-  return c.toDataURL('image/png');
-}
- 
-async function renderBonusList() {
-  const el = document.getElementById('bonusList');
-  el.innerHTML = '';
-
-  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-
-  for (const b of BONUSES) {
-    const isClaimed = !!claimed[b.id];
-    const isStoryOnDesktop = b.id === 'story' && !isMobile;
-
-    const div = document.createElement('div');
-    div.className = 'bonus-item' + (isClaimed ? ' claimed' : '');
-    div.innerHTML =
-      '<div class="icon">' + b.icon + '</div>' +
-      '<div class="info">' +
-        '<div class="label">' + b.label + '</div>' +
-        '<div class="reward">' + (isStoryOnDesktop
-          ? '📱 Доступно только в мобильном приложении VK'
-          : '+' + b.reward + ' ❤️ жизн' + (b.reward === 1 ? 'ь' : 'и')) +
-        '</div>' +
-      '</div>' +
-      '<button ' + (isClaimed || isStoryOnDesktop ? 'disabled' : '') +
-        ' data-bonus="' + b.id + '">' +
-        (isClaimed ? '✓ Получено' : isStoryOnDesktop ? '📱 VK Mobile' : 'Получить') +
-      '</button>';
-    el.appendChild(div);
-  }
-
-  el.querySelectorAll('button[data-bonus]').forEach(btn => {
-    btn.addEventListener('click', () => claimBonus(btn.dataset.bonus));
-  });
-}
-
-async function claimBonus(id) {
-  const b = BONUSES.find(x => x.id === id);
-  if (!b || claimed[id]) return;
-  const loader = document.getElementById('bonusLoader');
-  loader.textContent = '⏳ Ожидание действия...';
-
-  let ok = false;
-  try {
-    await b.vk();
-    ok = true;
-  } catch (e) {
-    console.log('Bonus error:', e);
-    // для тестирования вне VK всё равно даём бонус
-    ok = true;
-  }
-
-  if (ok) {
-    claimed[id] = true;
-    await storageSet('bonus_' + id, '1');
-
-    // Начисляем жизни
-    if (state === STATE.GAME_OVER) {
-      // если игра окончена — даём бонус и автоматически запускаем новую игру с доп. жизнями
-      startGameWithBonus(b.reward);
-    } else if (state === STATE.PLAY) {
-      game.lives += b.reward;
-      for (let i = 0; i < b.reward; i++) showFloater('+1 ❤️', W/2 + i*40 - 20, H - 100, '#4ade80');
-    } else {
-      // в меню — просто запоминаем, начислим при старте
-      pendingBonusLives += b.reward;
-    }
-    sfx.life();
-    loader.textContent = '✅ Получено +' + b.reward + ' ❤️';
-    setTimeout(() => { loader.textContent = ''; }, 2000);
-    renderBonusList();
-  } else {
-    loader.textContent = '❌ Не удалось';
-    setTimeout(() => { loader.textContent = ''; }, 2000);
-  }
-}
-
-let pendingBonusLives = 0;
-
-function startGameWithBonus(extraLives) {
-  startGame();
-  game.lives = START_LIVES + extraLives;
-  for (let i = 0; i < extraLives; i++) showFloater('+1 ❤️', W/2 + i*40 - 20, H - 100, '#4ade80');
-   lifeLostFlash = 0;
-}
 
 // ═══════════════════════════════════════════════════════════════
-//  ОБРАБОТКА КНОПОК UI
+//  ОБРАБОТКА КНОПОК
 // ═══════════════════════════════════════════════════════════════
 document.addEventListener('click', async e => {
   const btn = e.target.closest('[data-action]');
@@ -1610,104 +1610,67 @@ document.addEventListener('click', async e => {
     }
     showScreen(null);
   }
-  else if (action === 'bonuses') {
-    await renderBonusList();
-    showScreen('bonusScreen');
-  }
+  else if (action === 'bonuses') { await renderBonusList(); showScreen('bonusScreen'); }
   else if (action === 'close-bonus') {
-    // возвращаемся туда, откуда пришли
     if (state === STATE.GAME_OVER) showScreen('gameoverScreen');
     else showScreen('menuScreen');
   }
-    else if (action === 'menu') {
+  else if (action === 'menu') {
     state = STATE.MENU;
-    ducks = []; particles = []; floaters = [];
+    ducks = []; particles = []; floaters = []; leaves = [];
     dog.state = 'hidden'; dog.duck = null; dog.timer = 0;
     showScreen('menuScreen');
   }
-       else if (action === 'exit-app') {
-    if (!confirm('Закрыть игру?')) return;
-    Music.stop();
-    try {
-      await vkSend('VKWebAppClose', { status: 'success' });
-    } catch (e) {
-      // Если метод не сработал (браузер) — просто уходим в меню
-      showScreen('menuScreen');
-    }
-  }
-   else if (action === 'leader') {
-    await renderLeader();
-    showScreen('leaderScreen');
-  }
+  else if (action === 'leader') { await renderLeader(); showScreen('leaderScreen'); }
   else if (action === 'close-leader') {
     if (state === STATE.GAME_OVER) showScreen('gameoverScreen');
     else showScreen('menuScreen');
   }
   else if (action === 'reset-scores') {
     if (confirm('Сбросить все рекорды и статистику?')) {
-      await resetStats();
-      await renderLeader();
+      await resetStats(); await renderLeader();
     }
   }
+  else if (action === 'exit-app') {
+    if (!confirm('Закрыть игру?')) return;
+    Music.stop();
+    try { await vkSend('VKWebAppClose', { status: 'success' }); }
+    catch (e) { showScreen('menuScreen'); }
+  }
 });
- // ═══════════════════════════════════════════════════════════════
-//  МИНИ-КНОПКА «✕» — выход в меню во время игры
-// ═══════════════════════════════════════════════════════════════
+
 document.addEventListener('click', async e => {
   if (e.target.id !== 'quickExit') return;
   if (!confirm('Выйти в меню? Прогресс партии будет потерян.')) return;
-
   state = STATE.MENU;
-  ducks = [];
-  particles = [];
-  floaters = [];
-  dog.state = 'hidden';
-  dog.duck = null;
-  dog.timer = 0;
+  ducks = []; particles = []; floaters = []; leaves = [];
+  dog.state = 'hidden'; dog.duck = null; dog.timer = 0;
   showScreen('menuScreen');
 });
 
 // ═══════════════════════════════════════════════════════════════
 //  СТАРТ
 // ═══════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════
-//  СТАРТ (не блокируем игру ожиданием VK)
-// ═══════════════════════════════════════════════════════════════
 (function bootstrap() {
   console.log('🦆 [bootstrap] start');
-
-  // 1. Сразу запускаем игровой цикл — рисование не ждёт VK
-  try {
-    loop();
-    console.log('🦆 [bootstrap] loop started');
-  } catch (e) {
-    console.error('🦆 [bootstrap] loop error', e);
-  }
-
-  // 2. Показываем меню мгновенно
+  try { loop(); console.log('🦆 [bootstrap] loop started'); }
+  catch (e) { console.error('🦆 [bootstrap] loop error', e); }
   showScreen('menuScreen');
-   lockOrientation();
 
-  // 3. Фоново грузим: бонусы, статистику, настройку музыки
   Promise.race([
     Promise.all([
       loadClaimed(),
       loadStats(),
       (async () => {
         const on = await storageGet('music_on');
-        Music.enabled = (on === null) ? true : (on === '1'); // по умолчанию — включена
+        Music.enabled = (on === null) ? true : (on === '1');
         updateMusicBtn();
-        console.log('🎵 [bootstrap] music enabled:', Music.enabled);
       })()
     ]),
     new Promise(r => setTimeout(r, 1500))
   ]).then(() => {
-    console.log('🦆 [bootstrap] bonuses loaded', claimed);
-    console.log('📊 [bootstrap] stats loaded', stats);
-    console.log('🏆 [bootstrap] top scores', topScores);
-  }).catch(e => {
-    console.warn('🦆 [bootstrap] preload failed (это ок вне VK)', e);
-  });
+    console.log('🦆 bootstrap done');
+  }).catch(e => console.warn('preload:', e));
 })();
 </script>
 </body>
