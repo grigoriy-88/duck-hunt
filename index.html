@@ -613,7 +613,7 @@ class Duck {
 // ═══════════════════════════════════════════════════════════════
 const DOG_SCALE = 2.0;
 
-class Dog {
+cclass Dog {
   constructor() {
     this.state = 'hidden';
     this.x = 0; this.y = H - 80;
@@ -692,14 +692,16 @@ class Dog {
   }
   draw() {
     if (this.state === 'hidden') return;
+
+    // ═══ 1. ТЕЛО СОБАКИ (с зеркалированием и масштабом) ═══
     ctx.save();
     ctx.translate(this.x, this.y);
     if (this.facing === -1) ctx.scale(-1, 1);
     ctx.scale(DOG_SCALE, DOG_SCALE);
-    // сдвигаем визуально вверх, чтобы крупная собака не вылезала за низ
     ctx.translate(0, -18);
 
-    const walking = this.state === 'running_in' || this.state === 'running_out' || this.state === 'announce_in' || this.state === 'announce_out';
+    const walking = this.state === 'running_in' || this.state === 'running_out'
+                 || this.state === 'announce_in' || this.state === 'announce_out';
     const legOff = walking ? Math.sin(this.timer*0.4)*6 : 0;
 
     // Тень
@@ -715,7 +717,7 @@ class Dog {
     ctx.lineTo(-28,0);
     ctx.closePath(); ctx.fill();
 
-    // Лапы
+    // Задние лапы
     ctx.fillStyle = '#a8703a';
     ctx.fillRect(-14, 12 + legOff, 7, 14);
     ctx.fillRect(8, 12 - legOff, 7, 14);
@@ -736,6 +738,7 @@ class Dog {
     ctx.fillStyle = '#000';
     ctx.beginPath(); ctx.arc(41,-8,3,0,Math.PI*2); ctx.fill();
 
+    // Глаз (смех / нормальный)
     const laughing = this.state === 'popping' && this.timer > 20 && this.timer < 95;
     if (laughing) {
       ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
@@ -748,48 +751,122 @@ class Dog {
       ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(27,-14,2,0,Math.PI*2); ctx.fill();
     }
 
-    // Табличка "РАУНД N"
-    if (this.state === 'announce_show' || this.state === 'announce_out') {
+    // ═══ 2. УТКА В ПАСТИ (в той же системе координат) ═══
+    if (this.state === 'grabbing' || this.state === 'running_out') {
+      this.drawHeldDuck();
+    }
+
+    ctx.restore();
+
+    // ═══ 3. ТАБЛИЧКА "РАУНД N" (ВНЕ зеркалирования — текст не перевернётся) ═══
+    if (this.state === 'announce_in' || this.state === 'announce_show' || this.state === 'announce_out') {
       const bob = Math.sin(this.timer * 0.15) * 3;
+      // Позиция таблички в мировых координатах (не зависит от facing)
+      const tableX = this.x;
+      const tableY = this.y - 125 * (DOG_SCALE / 2) + bob;
+
       ctx.save();
-      ctx.translate(-12, -75 + bob);
-      // палка
+      ctx.translate(tableX, tableY);
+
+      // Палка таблички
       ctx.fillStyle = '#654321';
-      ctx.fillRect(-3, 22, 6, 34);
-      // табличка (широкая, чтобы влезло "РАУНД 10")
+      ctx.fillRect(-3, 25, 6, 40);
+
+      // Белая табличка
       ctx.fillStyle = '#fff';
       ctx.strokeStyle = '#654321';
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.roundRect(-70, -28, 140, 55, 8);
-      ctx.fill(); ctx.stroke();
-      // текст
+      ctx.roundRect(-78, -28, 156, 58, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      // Внутренняя светлая окантовка
+      ctx.strokeStyle = '#c8a878';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(-73, -23, 146, 48, 5);
+      ctx.stroke();
+
+      // Текст (никогда не зеркалится)
       ctx.fillStyle = '#c00';
-      ctx.font = 'bold 24px Courier New';
+      ctx.font = 'bold 26px Courier New';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('РАУНД ' + this.announceRound, 0, 0);
+      ctx.fillText('РАУНД ' + this.announceRound, 0, 1);
       ctx.textBaseline = 'alphabetic';
-      ctx.restore();
-    }
 
-    // Утка в пасти
-    if (this.state === 'grabbing' || this.state === 'running_out') {
-      ctx.save();
-      ctx.translate(-2, -22);
-      ctx.fillStyle = '#666';
-      ctx.beginPath(); ctx.ellipse(0,0,18,11,0,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#444';
-      ctx.beginPath(); ctx.arc(14,-3,8,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#e8a020';
-      ctx.beginPath(); ctx.moveTo(21,-3); ctx.lineTo(29,-1); ctx.lineTo(21,2); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(12,-6); ctx.lineTo(16,-2);
-      ctx.moveTo(16,-6); ctx.lineTo(12,-2);
-      ctx.stroke();
       ctx.restore();
     }
+  }
+
+  // ─── Утка в пасти — красивая, как в игре ───
+  drawHeldDuck() {
+    ctx.save();
+    // Утка висит в пасти, головой назад (влево)
+    ctx.translate(2, -28);
+    ctx.rotate(0.15); // небольшой наклон
+
+    // Трейл падения
+    // Хвост
+    ctx.fillStyle = '#2a1a10';
+    ctx.beginPath();
+    ctx.moveTo(-22, -3);
+    ctx.lineTo(-34, -8);
+    ctx.lineTo(-32, 3);
+    ctx.closePath();
+    ctx.fill();
+
+    // Тело
+    ctx.fillStyle = '#4a3728';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 22, 13, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // Грудь (светлее)
+    ctx.fillStyle = '#8b6f47';
+    ctx.beginPath();
+    ctx.ellipse(7, 1, 11, 9, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // Крыло (сложенное)
+    ctx.fillStyle = '#3a2818';
+    ctx.beginPath();
+    ctx.moveTo(-3, -3);
+    ctx.quadraticCurveTo(-10, -10, -18, -3);
+    ctx.quadraticCurveTo(-12, 4, -3, 3);
+    ctx.closePath();
+    ctx.fill();
+
+    // Голова
+    ctx.fillStyle = '#2d5016';
+    ctx.beginPath();
+    ctx.arc(21, -5, 10, 0, Math.PI*2);
+    ctx.fill();
+
+    // Клюв
+    ctx.fillStyle = '#e8a020';
+    ctx.beginPath();
+    ctx.moveTo(29, -6);
+    ctx.lineTo(40, -4);
+    ctx.lineTo(29, -1);
+    ctx.closePath();
+    ctx.fill();
+
+    // Мёртвый глаз — крестик
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(21, -8); ctx.lineTo(25, -4);
+    ctx.moveTo(25, -8); ctx.lineTo(21, -4);
+    ctx.stroke();
+
+    // Язык из клюва (свисает)
+    ctx.fillStyle = '#e05a5a';
+    ctx.beginPath();
+    ctx.ellipse(37, -1, 4, 2, 0.3, 0, Math.PI*2);
+    ctx.fill();
+
     ctx.restore();
   }
 }
