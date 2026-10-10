@@ -1720,24 +1720,8 @@ const BONUSES = [
     vk: () => vkSend('VKWebAppAllowMessagesFromGroup', { group_id: VK_GROUP_ID }) },
   { id: 'favorite', icon:'⭐', label:'Добавить в избранное',        reward:1,
     vk: () => vkSend('VKWebAppAddToFavorites') },
-  { id: 'story', icon: '📸', label: 'Опубликовать историю', reward: 2, repeatable: true,
-  vk: () => {
-      const dataUrl = generateStoryImage();
-      return vkSend('VKWebAppShowStoryBox', {
-        background_type: 'image',
-        blob: dataUrl,
-        attachment: {
-  text: 'Играть',
-  type: 'mini_app',
-  url: 'https://vk.com/app' + VK_APP_ID
-}
-      });
-    }
-  },
   { id: 'like',     icon:'❤️', label:'Поставить лайк посту',       reward:1,
-    vk: () => openVkLink('https://vk.com/wall-' + VK_GROUP_ID + '_' + VK_POST_ID) },
-  { id: 'comment',  icon:'💬', label:'Оставить комментарий',        reward:1, repeatable: true,
-  vk: () => openVkLink('https://vk.com/wall-' + VK_GROUP_ID + '_' + VK_POST_ID) }
+    vk: () => openVkLink('https://vk.com/wall-' + VK_GROUP_ID + '_' + VK_POST_ID) }
 ];
 
 function generateStoryImage() {
