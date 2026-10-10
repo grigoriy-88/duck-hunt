@@ -136,15 +136,24 @@
     z-index:20; width:36px; height:36px; border-radius:50%; border:none;
     background: rgba(0,0,0,0.6); color:#fff; font-size:18px; cursor:pointer;
     pointer-events:auto; font-family:inherit; }
-  @media (orientation: portrait) { #rotate-hint { display: flex !important; } }
+  @media (orientation: portrait) {
+  #rotate-hint:not(.dismissed) { display: flex !important; }
+}
 </style>
 </head>
 <body>
 
 <div id="rotate-hint" style="display:none;position:fixed;inset:0;background:#0a0a1a;
      color:#ffe066;font-family:'Courier New',monospace;font-size:22px;font-weight:bold;
-     align-items:center;justify-content:center;text-align:center;z-index:9999;padding:30px;">
-  📱 Поверни телефон горизонтально<br><br>🦆 Играть удобнее в ландшафте
+     align-items:center;justify-content:center;text-align:center;z-index:9999;padding:30px;
+     flex-direction:column;cursor:pointer;">
+  <div>📱 Поверни телефон горизонтально</div>
+  <div style="margin-top:14px;font-size:18px;color:#94a3b8;">🦆 Играть удобнее в ландшафте</div>
+  <button id="rotateHintClose" style="margin-top:30px;padding:12px 28px;
+    background:#22a355;color:#fff;border:none;border-radius:8px;
+    font-family:inherit;font-size:16px;font-weight:bold;cursor:pointer;
+    box-shadow:0 4px 0 #166534;">Играть в портрете</button>
+  <div style="margin-top:14px;font-size:12px;color:#64748b;">(нажми, если не хочешь поворачивать)</div>
 </div>
 
 <canvas id="game"></canvas>
@@ -407,8 +416,16 @@ if (window.vkBridge) {
   vkBridge.subscribe(e => {
     const type = e && e.detail && e.detail.type;
     if (!type) return;
-    if (type === 'VKWebAppViewHide') Music.pause();
-    else if (type === 'VKWebAppViewRestore') {
+
+    if (type === 'VKWebAppViewHide') {
+      Music.pause();
+    } else if (type === 'VKWebAppViewRestore') {
+      // ⬇⬇⬇ ПАТЧ 4 — вот эта строчка
+      try {
+        if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+      } catch (err) {}
+      // ⬆⬆⬆ конец патча 4
+
       Music.resume();
       if (state === STATE.PLAY || state === STATE.ROUND_END || state === STATE.GAME_OVER) {
         state = STATE.MENU; ducks = []; particles = []; leaves = [];
@@ -421,7 +438,59 @@ if (window.vkBridge) {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) Music.pause(); else Music.resume();
 });
+// ═══════════════════════════════════════════════════════════════
+//  ПОДСКАЗКА ПОВОРОТА — закрывается тапом, авто-скрытие
+// ═══════════════════════════════════════════════════════════════
+(function setupRotateHint() {
+  const hint = document.getElementById('rotate-hint');
+  const btn = document.getElementById('rotateHintClose');
+  if (!hint) return;
 
+  let hintDismissed = false;
+
+  // Проверяем, не откладывали ли уже подсказку в этой сессии
+  if (sessionStorage.getItem('rotate_hint_dismissed') === '1') {
+    hint.classList.add('dismissed');
+    hintDismissed = true;
+  }
+
+  function dismissHint() {
+    hint.classList.add('dismissed');
+    hintDismissed = true;
+    sessionStorage.setItem('rotate_hint_dismissed', '1');
+    // Триггерим resize, чтобы игра пересчитала пропорции
+    setTimeout(resize, 50);
+    setTimeout(resize, 200);
+    initAudio();
+  }
+
+  // Клик по кнопке — закрыть
+  if (btn) {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      dismissHint();
+    });
+  }
+
+  // Клик по всему оверлею — тоже закрыть
+  hint.addEventListener('click', () => {
+    dismissHint();
+  });
+
+  // Авто-скрытие через 4 секунды
+  const autoHide = setTimeout(() => {
+    if (!hintDismissed) dismissHint();
+  }, 4000);
+
+  // Сброс авто-скрытия при повороте в ландшафт
+  window.addEventListener('orientationchange', () => {
+    clearTimeout(autoHide);
+  });
+
+  // Отладка — что видит игра
+  console.log('📱 hint setup: orientation =', screen.orientation?.type, '| dismissed =', hintDismissed);
+})();
+  
 // ═══════════════════════════════════════════════════════════════
 //  ДОСТИЖЕНИЯ
 // ═══════════════════════════════════════════════════════════════
