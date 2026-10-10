@@ -405,13 +405,12 @@ if (window.vkBridge) {
     if (type === 'VKWebAppViewHide') {
       Music.pause();
     } else if (type === 'VKWebAppViewRestore') {
-      // ⬇⬇⬇ ПАТЧ 4 — вот эта строчка
-      try {
-        if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
-      } catch (err) {}
-      // ⬆⬆⬆ конец патча 4
-
       Music.resume();
+      // ⬇ Принудительно пересчитываем размеры после возврата
+      setTimeout(resize, 100);
+      setTimeout(resize, 400);
+      setTimeout(resize, 900);
+
       if (state === STATE.PLAY || state === STATE.ROUND_END || state === STATE.GAME_OVER) {
         state = STATE.MENU; ducks = []; particles = []; leaves = [];
         dog.state = 'hidden'; dog.duck = null; dog.timer = 0;
