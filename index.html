@@ -8,92 +8,100 @@
   (function(){
     var s = document.createElement('script');
     s.src = 'https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js';
-    s.async = true;
-    s.onerror = function(){ console.warn('VK Bridge не загрузился'); };
+    s.async = true; s.onerror = function(){ console.warn('VK Bridge offline'); };
     document.head.appendChild(s);
   })();
 </script>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; user-select:none; -webkit-tap-highlight-color:transparent; }
-  html, body {
-    width:100%; height:100%; height:100dvh; overflow:hidden;
+  html, body { width:100%; height:100%; height:100dvh; overflow:hidden;
     position:fixed; inset:0;
     background: radial-gradient(ellipse at center, #141e30 0%, #0a0a1a 100%);
-    font-family:'Courier New', monospace; color:#fff;
-    overscroll-behavior:none;
-  }
+    font-family:'Courier New', monospace; color:#fff; overscroll-behavior:none; }
   #game { display:block; position:fixed; top:0; left:0; width:100vw; height:100vh;
     height:100dvh; cursor:none; touch-action:none; }
-
   #ui { position:fixed; top:0; left:0; width:800px; height:600px;
     pointer-events:none; z-index:10; transform-origin:0 0; }
 
-  .screen {
-    position:absolute; inset:0; display:none;
+  .screen { position:absolute; inset:0; display:none;
     flex-direction:column; align-items:center; justify-content:center;
-    background: rgba(5,10,25,0.88);
-    pointer-events:auto; padding:16px; text-align:center;
-    overflow-y:auto; -webkit-overflow-scrolling:touch;
-  }
+    background: rgba(5,10,25,0.88); pointer-events:auto; padding:16px;
+    text-align:center; overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .screen.show { display:flex; animation: fadeIn 0.35s ease-out; }
   @keyframes fadeIn {
     from { opacity:0; transform: scale(0.96); }
     to { opacity:1; transform: scale(1); }
   }
 
-  .screen h1 { font-size:44px; color:#ffe066;
+  .screen h1 { font-size:38px; color:#ffe066;
     text-shadow: 0 4px 0 #000, 0 0 20px rgba(255,224,102,0.5);
-    margin-bottom:16px; letter-spacing:2px; }
-  .screen h2 { font-size:22px; color:#4ade80; margin-bottom:10px; }
-  .screen p { font-size:17px; color:#cbd5e1; margin:5px 0; line-height:1.5; }
+    margin-bottom:12px; letter-spacing:2px; }
+  .screen h2 { font-size:20px; color:#4ade80; margin-bottom:8px; }
+  .screen p { font-size:16px; color:#cbd5e1; margin:4px 0; line-height:1.4; }
   .screen .big { font-size:52px; color:#fff; font-weight:bold;
     margin:8px 0 18px; text-shadow: 0 0 20px #4ade80; }
 
-  .btn {
-    background: linear-gradient(180deg, #4ade80 0%, #22a355 100%);
-    color:#052e16; border:none; padding:14px 32px;
-    font-size:18px; font-family:inherit; font-weight:bold;
-    letter-spacing:1px; border-radius:10px; cursor:pointer; margin:7px;
+  .btn { background: linear-gradient(180deg, #4ade80 0%, #22a355 100%);
+    color:#052e16; border:none; padding:12px 28px;
+    font-size:17px; font-family:inherit; font-weight:bold;
+    letter-spacing:1px; border-radius:10px; cursor:pointer; margin:6px;
     box-shadow: 0 4px 0 #166534, 0 6px 20px rgba(0,0,0,0.5);
     transition: transform 0.05s, box-shadow 0.05s;
-    text-transform: uppercase; min-width:260px; line-height:1.3;
-  }
+    text-transform: uppercase; min-width:250px; line-height:1.3; }
   .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #166534; }
-  .btn.secondary {
-    background: linear-gradient(180deg, #facc15 0%, #d97706 100%);
-    box-shadow: 0 4px 0 #92400e, 0 6px 20px rgba(0,0,0,0.5); color:#451a03;
-  }
+  .btn.secondary { background: linear-gradient(180deg, #facc15 0%, #d97706 100%);
+    box-shadow: 0 4px 0 #92400e, 0 6px 20px rgba(0,0,0,0.5); color:#451a03; }
   .btn.secondary:active { box-shadow: 0 1px 0 #92400e; }
-  .btn.ghost {
-    background: transparent; color:#cbd5e1;
+  .btn.ghost { background: transparent; color:#cbd5e1;
     box-shadow: inset 0 0 0 2px #475569;
-    min-width:200px; font-size:16px; padding:10px 24px;
-  }
-  .btn:disabled {
-    background: linear-gradient(180deg, #475569 0%, #334155 100%);
-    color:#94a3b8; cursor:not-allowed; box-shadow: 0 4px 0 #1e293b;
-  }
+    min-width:200px; font-size:15px; padding:9px 22px; }
+  .btn:disabled { background: linear-gradient(180deg, #475569 0%, #334155 100%);
+    color:#94a3b8; cursor:not-allowed; box-shadow: 0 4px 0 #1e293b; }
 
-  .bonus-list { display:grid; grid-template-columns:1fr; gap:6px;
-    width:520px; margin:10px 0; }
-  .bonus-item {
-    display:flex; align-items:center; gap:10px;
+  .mode-list { display:grid; grid-template-columns:1fr; gap:8px;
+    width: 520px; margin: 10px 0; }
+  .mode-card { display:flex; align-items:center; gap:14px;
     background: rgba(30,41,59,0.9); border:2px solid #334155;
-    border-radius:8px; padding:6px 12px;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .bonus-item .icon { font-size:20px; width:28px; text-align:center; }
-  .bonus-item .info { flex:1; text-align:left; }
-  .bonus-item .label { font-size:14px; color:#e2e8f0; font-weight:bold; }
-  .bonus-item .reward { font-size:11px; color:#4ade80; margin-top:2px; line-height:1.3; }
-  .bonus-item button {
-    padding:7px 14px; background:#4ade80; color:#052e16; border:none;
-    font-family:inherit; font-weight:bold; font-size:12px;
-    border-radius:6px; cursor:pointer; min-width:90px;
-  }
-  .bonus-item button:disabled { background:#334155; color:#64748b; cursor:default; }
-  .bonus-item.claimed { opacity:0.55; border-color:#1e293b; }
-  .bonus-item.claimed .icon { filter: grayscale(1); }
+    border-radius:10px; padding:12px 16px; cursor:pointer;
+    transition: border-color 0.15s, transform 0.1s;
+    text-align:left; pointer-events:auto; }
+  .mode-card:hover { border-color:#4ade80; }
+  .mode-card:active { transform: scale(0.98); }
+  .mode-card .mode-icon { font-size:34px; width:44px; text-align:center; }
+  .mode-card .mode-info { flex:1; }
+  .mode-card .mode-title { font-size:17px; font-weight:bold; color:#ffe066; }
+  .mode-card .mode-desc { font-size:12px; color:#94a3b8; margin-top:3px; line-height:1.35; }
+  .mode-card .mode-best { font-size:11px; color:#4ade80; margin-top:4px; }
+
+  .ach-grid { display:grid; grid-template-columns:1fr; gap:5px;
+    width:540px; max-height: 380px; overflow-y:auto; margin: 8px 0; }
+  .ach-item { display:flex; align-items:center; gap:10px;
+    background: rgba(30,41,59,0.9); border:2px solid #334155;
+    border-radius:8px; padding:8px 12px; text-align:left; }
+  .ach-item.unlocked { border-color:#facc15; background: rgba(120,80,0,0.35); }
+  .ach-item .ach-icon { font-size:22px; width:28px; text-align:center;
+    filter: grayscale(1) brightness(0.6); }
+  .ach-item.unlocked .ach-icon { filter: none; }
+  .ach-item .ach-info { flex:1; }
+  .ach-item .ach-title { font-size:13px; color:#94a3b8; font-weight:bold; }
+  .ach-item.unlocked .ach-title { color:#ffe066; }
+  .ach-item .ach-desc { font-size:11px; color:#64748b; margin-top:1px; }
+  .ach-item .ach-check { color:#4ade80; font-size:16px; }
+
+  .ach-popup { position: absolute; top:-140px; left:50%; transform: translateX(-50%);
+    background: linear-gradient(180deg, #facc15 0%, #d97706 100%);
+    border:3px solid #92400e; border-radius:12px;
+    padding:12px 22px; z-index:100; box-shadow: 0 6px 30px rgba(0,0,0,0.7);
+    min-width:320px; text-align:center; pointer-events:none;
+    animation: achSlide 0.5s ease-out forwards, achHide 0.5s ease-in 3.5s forwards; }
+  @keyframes achSlide { from { top:-140px; } to { top: 40px; } }
+  @keyframes achHide { from { top: 40px; } to { top:-200px; } }
+  .ach-popup .popup-label { font-size:11px; color:#451a03; letter-spacing:2px; font-weight:bold; }
+  .ach-popup .popup-body { display:flex; align-items:center; gap:10px; margin-top:5px; justify-content:center; }
+  .ach-popup .popup-icon { font-size:26px; }
+  .ach-popup .popup-text { text-align:left; }
+  .ach-popup .popup-title { font-size:15px; color:#451a03; font-weight:bold; }
+  .ach-popup .popup-desc { font-size:11px; color:#78350f; }
 
   .stats-grid { display:grid; grid-template-columns:repeat(2, 1fr);
     gap:6px; width:520px; margin:10px 0; }
@@ -109,31 +117,26 @@
   .top-item.first { border-color:#ffe066; background: rgba(120,80,0,0.4); }
   .top-item .rank { color:#94a3b8; width:26px; font-weight:bold; }
   .top-item .score { color:#4ade80; font-weight:bold; flex:1; text-align:left; }
-  .top-item .round { color:#94a3b8; font-size:11px; }
+  .top-item .mode-tag { font-size:10px; color:#94a3b8; padding:1px 6px;
+    border:1px solid #475569; border-radius:3px; }
   .top-item .date { color:#64748b; font-size:11px; }
 
   .hint { font-size:12px; color:#94a3b8; margin-top:6px; max-width:480px; }
   .loader { color:#94a3b8; font-size:12px; margin-top:6px; min-height:18px; }
 
-  .music-btn {
-    position:fixed; bottom:20px; right:20px; z-index:50;
+  .music-btn { position:fixed; bottom:20px; right:20px; z-index:50;
     background: rgba(30,41,59,0.95); color:#fff;
     border:2px solid #475569; border-radius:50%;
     width:54px; height:54px; font-size:24px; cursor:pointer;
-    transition: transform 0.1s, background 0.15s; font-family:inherit;
-  }
+    transition: transform 0.1s, background 0.15s; font-family:inherit; }
   .music-btn:active { transform: scale(0.92); }
   .music-btn.on { background:#22a355; border-color:#4ade80; }
 
-  #quickExit {
-    display:none; position:absolute; top:8px; right:8px;
+  #quickExit { display:none; position:absolute; top:8px; right:8px;
     z-index:20; width:36px; height:36px; border-radius:50%; border:none;
     background: rgba(0,0,0,0.6); color:#fff; font-size:18px; cursor:pointer;
-    pointer-events:auto; font-family:inherit;
-  }
-  @media (orientation: portrait) {
-    #rotate-hint { display: flex !important; }
-  }
+    pointer-events:auto; font-family:inherit; }
+  @media (orientation: portrait) { #rotate-hint { display: flex !important; } }
 </style>
 </head>
 <body>
@@ -141,57 +144,81 @@
 <div id="rotate-hint" style="display:none;position:fixed;inset:0;background:#0a0a1a;
      color:#ffe066;font-family:'Courier New',monospace;font-size:22px;font-weight:bold;
      align-items:center;justify-content:center;text-align:center;z-index:9999;padding:30px;">
-  📱 Поверни телефон горизонтально<br><br>
-  🦆 Играть удобнее в ландшафте
+  📱 Поверни телефон горизонтально<br><br>🦆 Играть удобнее в ландшафте
 </div>
 
 <canvas id="game"></canvas>
 <button class="music-btn" id="musicBtn" title="Музыка">🔇</button>
 
 <div id="ui">
+  <div class="ach-popup" id="achPopup" style="display:none;">
+    <div class="popup-label">🏆 ДОСТИЖЕНИЕ ОТКРЫТО</div>
+    <div class="popup-body">
+      <div class="popup-icon" id="popupIcon">🏆</div>
+      <div class="popup-text">
+        <div class="popup-title" id="popupTitle"></div>
+        <div class="popup-desc" id="popupDesc"></div>
+      </div>
+    </div>
+  </div>
 
   <div class="screen show" id="menuScreen">
     <h1>🦆 ОХОТА НА УТОК</h1>
-    <p>🎯 Наведи прицел мышью или пальцем</p>
-    <p>💥 Клик / тап — выстрел</p>
-    <p>❤️ У тебя 3 жизни. Утка улетела — минус жизнь</p>
-    <p>🏆 Убей нужное число уток — новый раунд</p>
-    <button class="btn" data-action="start">▶ Играть</button>
+    <p>🎯 Наведи прицел — выстрел по утке</p>
+    <p>✨ Золотая утка = ×10 очков</p>
+    <p>🐦‍⬛ Ворона с 3 раунда = минус очки</p>
+    <button class="btn" data-action="modes">▶ Играть</button>
     <button class="btn secondary" data-action="bonuses">🎁 Получить жизни</button>
     <button class="btn ghost" data-action="leader">🏆 Рекорды</button>
-    <button class="btn ghost" data-action="exit-app" style="min-width:200px;color:#f87171;">🚪 Выйти</button>
+    <button class="btn ghost" data-action="achievements">🎖 Достижения</button>
+    <button class="btn ghost" data-action="exit-app" style="color:#f87171;">🚪 Выйти</button>
     <div class="hint" id="vkGreeting"></div>
+  </div>
+
+  <div class="screen" id="modeScreen">
+    <h1>🎮 ВЫБОР РЕЖИМА</h1>
+    <p style="font-size:14px;">Выбери, как будешь играть</p>
+    <div class="mode-list" id="modeList"></div>
+    <button class="btn ghost" data-action="menu" style="margin-top:8px;">← Назад</button>
   </div>
 
   <div class="screen" id="gameoverScreen">
     <h1>💀 ИГРА ОКОНЧЕНА</h1>
     <p>Твой результат:</p>
     <div class="big" id="finalScore">0</div>
-    <p>Раунд: <span id="finalRound">1</span></p>
+    <p><span id="finalMode"></span> · Раунд: <span id="finalRound">1</span></p>
     <button class="btn" data-action="restart">🔄 Играть снова</button>
     <button class="btn secondary" data-action="bonuses">🎁 Получить жизни</button>
+    <button class="btn ghost" data-action="modes">🎮 Сменить режим</button>
     <button class="btn ghost" data-action="leader">🏆 Рекорды</button>
     <button class="btn ghost" data-action="menu">🏠 В меню</button>
-    <button class="btn ghost" data-action="exit-app" style="color:#f87171;">🚪 Выйти</button>
   </div>
 
   <div class="screen" id="bonusScreen">
-    <h1 style="font-size:34px;margin-bottom:6px;">🎁 БОНУСНЫЕ ЖИЗНИ</h1>
+    <h1 style="font-size:32px;margin-bottom:6px;">🎁 БОНУСНЫЕ ЖИЗНИ</h1>
     <p style="font-size:14px;margin:2px 0 6px;">За каждое действие — дополнительные жизни</p>
-    <div class="bonus-list" id="bonusList"></div>
+    <div class="bonus-list" id="bonusList"
+      style="display:grid;grid-template-columns:1fr;gap:6px;width:520px;margin:10px 0;"></div>
     <button class="btn ghost" data-action="close-bonus" style="margin:6px;padding:8px 20px;font-size:14px;">← Назад</button>
-    <div class="hint" style="font-size:12px;margin-top:4px;">Каждый бонус можно получить один раз. Прогресс сохраняется.</div>
+    <div class="hint" style="font-size:12px;">Каждый бонус можно получить один раз</div>
     <div class="loader" id="bonusLoader"></div>
   </div>
 
   <div class="screen" id="leaderScreen">
     <h1>🏆 РЕКОРДЫ</h1>
     <div class="stats-grid" id="statsGrid"></div>
-    <h2 style="margin-top:8px;font-size:18px;">Топ-10 игр</h2>
+    <h2 style="margin-top:6px;font-size:16px;">Топ-10 игр</h2>
     <div class="top-list" id="topList"></div>
     <button class="btn ghost" data-action="close-leader">← Назад</button>
     <button class="btn ghost" data-action="reset-scores"
-      style="font-size:13px;min-width:auto;padding:8px 18px;color:#f87171;">🗑 Сбросить</button>
+      style="font-size:12px;min-width:auto;padding:7px 16px;color:#f87171;">🗑 Сбросить</button>
+  </div>
+
+  <div class="screen" id="achScreen">
+    <h1 style="font-size:32px;">🎖 ДОСТИЖЕНИЯ</h1>
+    <p style="font-size:13px;" id="achCount">Открыто 0 / 12</p>
+    <div class="ach-grid" id="achGrid"></div>
+    <button class="btn ghost" data-action="close-ach">← Назад</button>
   </div>
 
   <button id="quickExit">✕</button>
@@ -199,28 +226,21 @@
 
 <script>
 // ═══════════════════════════════════════════════════════════════
-//  ⚙️  НАСТРОЙКИ VK — ЗАМЕНИ НА СВОИ
+//  НАСТРОЙКИ VK
 // ═══════════════════════════════════════════════════════════════
-const VK_GROUP_ID = 228373135;
-const VK_POST_ID  = 7622;
-const VK_APP_ID   = 54787293;
+const VK_GROUP_ID = 12345678;
+const VK_POST_ID  = 1;
+const VK_APP_ID   = 54782689;
 const START_LIVES = 3;
 
-window.addEventListener('error', e => {
-  console.error('[GAME ERROR]', e.error || e.message, e.filename, e.lineno);
-});
+window.addEventListener('error', e => console.error('[GAME ERROR]', e.error || e.message));
 
 // ═══════════════════════════════════════════════════════════════
 //  VK BRIDGE
 // ═══════════════════════════════════════════════════════════════
-let vkReady = false;
-let vkUser = null;
-
-function withTimeout(promise, ms = 2500) {
-  return Promise.race([
-    promise,
-    new Promise((_, rej) => setTimeout(() => rej(new Error('vk timeout')), ms))
-  ]);
+let vkReady = false, vkUser = null;
+function withTimeout(p, ms = 2500) {
+  return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('vk timeout')), ms))]);
 }
 async function vkSend(method, params) {
   if (!vkReady || !window.vkBridge) throw new Error('VK Bridge not ready');
@@ -228,30 +248,23 @@ async function vkSend(method, params) {
 }
 async function storageGet(key) {
   try {
-    if (vkReady) {
-      const r = await vkSend('VKWebAppStorageGet', { keys: [key] });
-      return r.keys[0]?.value || null;
-    }
+    if (vkReady) { const r = await vkSend('VKWebAppStorageGet', { keys: [key] }); return r.keys[0]?.value || null; }
   } catch (e) {}
   return localStorage.getItem('dh_' + key);
 }
 async function storageSet(key, value) {
-  try {
-    if (vkReady) await vkSend('VKWebAppStorageSet', { key, value: String(value) });
-  } catch (e) {}
+  try { if (vkReady) await vkSend('VKWebAppStorageSet', { key, value: String(value) }); } catch (e) {}
   localStorage.setItem('dh_' + key, String(value));
 }
-function tryInitVk(attempts = 0) {
+function tryInitVk(a = 0) {
   if (window.vkBridge) {
-    vkBridge.send('VKWebAppInit').then(() => { vkReady = true; console.log('✅ VK init'); }).catch(()=>{});
+    vkBridge.send('VKWebAppInit').then(() => { vkReady = true; }).catch(()=>{});
     vkBridge.send('VKWebAppGetUserInfo').then(u => {
       vkUser = u;
       const g = document.getElementById('vkGreeting');
       if (g) g.textContent = '👋 Привет, ' + u.first_name + '!';
     }).catch(()=>{});
-  } else if (attempts < 20) {
-    setTimeout(() => tryInitVk(attempts + 1), 100);
-  }
+  } else if (a < 20) setTimeout(() => tryInitVk(a + 1), 100);
 }
 tryInitVk();
 
@@ -261,8 +274,7 @@ tryInitVk();
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const W = 800, H = 600;
-let scale = 1, offsetX = 0, offsetY = 0;
-let currentDpr = 1;
+let scale = 1, offsetX = 0, offsetY = 0, currentDpr = 1;
 
 function resize() {
   const vv = window.visualViewport;
@@ -288,9 +300,7 @@ function resize() {
   }
 }
 window.addEventListener('resize', resize);
-window.addEventListener('orientationchange', () => {
-  setTimeout(resize, 100); setTimeout(resize, 300); setTimeout(resize, 600);
-});
+window.addEventListener('orientationchange', () => { setTimeout(resize, 100); setTimeout(resize, 300); });
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', resize);
   window.visualViewport.addEventListener('scroll', resize);
@@ -319,9 +329,12 @@ function beep(freq, dur, type='square', vol=0.12) {
 const sfx = {
   shoot:  () => { beep(200,0.08,'square',0.25); beep(80,0.15,'sawtooth',0.2); },
   hit:    () => { beep(900,0.1,'square',0.2); beep(1400,0.12,'square',0.15); },
+  golden: () => { beep(1200,0.1,'sine',0.25); setTimeout(()=>beep(1600,0.1,'sine',0.25),100); setTimeout(()=>beep(2000,0.15,'sine',0.2),200); },
+  crow:   () => { beep(400,0.1,'sawtooth',0.3); setTimeout(()=>beep(250,0.2,'sawtooth',0.3),100); },
   miss:   () => { beep(120,0.15,'sawtooth',0.15); },
   reload: () => { beep(300,0.05,'square',0.1); setTimeout(()=>beep(500,0.05,'square',0.1),80); setTimeout(()=>beep(700,0.08,'square',0.12),500); setTimeout(()=>beep(900,0.1,'square',0.15),800); },
   life:   () => { beep(600,0.1,'sine',0.2); setTimeout(()=>beep(900,0.15,'sine',0.2),100); setTimeout(()=>beep(1200,0.2,'sine',0.15),200); },
+  ach:    () => { beep(800,0.1,'sine',0.25); setTimeout(()=>beep(1100,0.1,'sine',0.25),90); setTimeout(()=>beep(1500,0.2,'sine',0.25),180); },
   over:   () => { beep(400,0.3,'sawtooth',0.2); setTimeout(()=>beep(300,0.3,'sawtooth',0.2),250); setTimeout(()=>beep(200,0.5,'sawtooth',0.2),500); }
 };
 
@@ -394,9 +407,8 @@ if (window.vkBridge) {
   vkBridge.subscribe(e => {
     const type = e && e.detail && e.detail.type;
     if (!type) return;
-    if (type === 'VKWebAppViewHide') {
-      Music.pause();
-    } else if (type === 'VKWebAppViewRestore') {
+    if (type === 'VKWebAppViewHide') Music.pause();
+    else if (type === 'VKWebAppViewRestore') {
       Music.resume();
       if (state === STATE.PLAY || state === STATE.ROUND_END || state === STATE.GAME_OVER) {
         state = STATE.MENU; ducks = []; particles = []; leaves = [];
@@ -411,10 +423,80 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+//  ДОСТИЖЕНИЯ
+// ═══════════════════════════════════════════════════════════════
+const ACHIEVEMENTS = [
+  { id:'first_blood', icon:'🎯', title:'Первая кровь', desc:'Убей первую утку' },
+  { id:'sniper',      icon:'🎯', title:'Снайпер', desc:'100% точность за раунд (мин. 5 выстрелов)' },
+  { id:'streak5',     icon:'🔥', title:'В ударе', desc:'5 попаданий подряд' },
+  { id:'streak10',    icon:'🔥', title:'Огонь!', desc:'10 попаданий подряд' },
+  { id:'rich',        icon:'💰', title:'Богач', desc:'10 000 очков за одну игру' },
+  { id:'hunter',      icon:'🦆', title:'Охотник', desc:'100 уток убито за всё время' },
+  { id:'veteran',     icon:'⭐', title:'Ветеран', desc:'Дойти до 5 раунда' },
+  { id:'legend',      icon:'🏆', title:'Легенда', desc:'Дойти до 10 раунда' },
+  { id:'golden',      icon:'✨', title:'Золотой охотник', desc:'Подстрелить 5 золотых уток' },
+  { id:'crow_master', icon:'🐦‍⬛', title:'Вороний глаз', desc:'Попасть в 5 ворон' },
+  { id:'time_master', icon:'⏱️', title:'Мастер времени', desc:'3000 очков в режиме «На время»' },
+  { id:'master',      icon:'🎮', title:'Мастер', desc:'Сыграть 25 игр' }
+];
+
+const unlockedAch = {};
+let achPopupQueue = [];
+let achPopupShowing = false;
+
+async function loadAchievements() {
+  for (const a of ACHIEVEMENTS) {
+    const v = await storageGet('ach_' + a.id);
+    unlockedAch[a.id] = v === '1';
+  }
+}
+async function saveAchievement(id) {
+  unlockedAch[id] = true;
+  await storageSet('ach_' + id, '1');
+}
+function unlockAchievement(id) {
+  if (unlockedAch[id]) return;
+  const a = ACHIEVEMENTS.find(x => x.id === id);
+  if (!a) return;
+  saveAchievement(id);
+  sfx.ach();
+  achPopupQueue.push(a);
+  processAchQueue();
+}
+function processAchQueue() {
+  if (achPopupShowing || achPopupQueue.length === 0) return;
+  achPopupShowing = true;
+  const a = achPopupQueue.shift();
+  const pop = document.getElementById('achPopup');
+  document.getElementById('popupIcon').textContent = a.icon;
+  document.getElementById('popupTitle').textContent = a.title;
+  document.getElementById('popupDesc').textContent = a.desc;
+  pop.style.display = 'block';
+  pop.style.animation = 'none';
+  void pop.offsetWidth;
+  pop.style.animation = 'achSlide 0.5s ease-out forwards, achHide 0.5s ease-in 3.5s forwards';
+  setTimeout(() => {
+    pop.style.display = 'none';
+    achPopupShowing = false;
+    processAchQueue();
+  }, 4200);
+}
+async function resetAchievements() {
+  for (const a of ACHIEVEMENTS) {
+    unlockedAch[a.id] = false;
+    await storageSet('ach_' + a.id, '0');
+  }
+}
+
+// Прогресс для достижений
+const progress = { totalDucks: 0, goldenDucks: 0, crowHits: 0, currentStreak: 0, bestStreak: 0 };
+
+// ═══════════════════════════════════════════════════════════════
 //  АНАЛИТИКА
 // ═══════════════════════════════════════════════════════════════
 const stats = { games:0, shots:0, hits:0, misses:0, escaped:0, rounds:0,
-  bestScore:0, bestRound:0, bestAccuracy:0 };
+  bestScore:0, bestRound:0, bestAccuracy:0,
+  bestTimeMode:0, bestHardcore:0 };
 let topScores = [];
 
 async function loadStats() {
@@ -422,18 +504,21 @@ async function loadStats() {
   if (raw) { try { Object.assign(stats, JSON.parse(raw)); } catch(e){} }
   const topRaw = await storageGet('top_scores');
   if (topRaw) { try { topScores = JSON.parse(topRaw); } catch(e){} }
+  const progRaw = await storageGet('progress');
+  if (progRaw) { try { Object.assign(progress, JSON.parse(progRaw)); } catch(e){} }
 }
 async function saveStats() { await storageSet('stats', JSON.stringify(stats)); }
-async function addTopScore(score, round) {
+async function saveProgress() { await storageSet('progress', JSON.stringify(progress)); }
+async function addTopScore(score, round, mode) {
   if (score <= 0) return;
-  topScores.push({ score, round, date: Date.now() });
+  topScores.push({ score, round, mode: mode || 'classic', date: Date.now() });
   topScores.sort((a, b) => b.score - a.score);
   topScores = topScores.slice(0, 10);
   await storageSet('top_scores', JSON.stringify(topScores));
 }
 async function resetStats() {
   Object.assign(stats, { games:0, shots:0, hits:0, misses:0, escaped:0, rounds:0,
-    bestScore:0, bestRound:0, bestAccuracy:0 });
+    bestScore:0, bestRound:0, bestAccuracy:0, bestTimeMode:0, bestHardcore:0 });
   topScores = [];
   await storageSet('stats', JSON.stringify(stats));
   await storageSet('top_scores', '[]');
@@ -446,105 +531,92 @@ const STATE = { MENU:0, PLAY:1, ROUND_END:2, GAME_OVER:3 };
 let state = STATE.MENU;
 
 const game = {
+  mode: 'classic', // classic | time | hardcore
   score:0, scoreDisplay:0, round:1, ammo:3, maxAmmo:3, lives:START_LIVES,
   ducksKilled:0, ducksNeeded:6, duckSpeed:1.2,
-  spawnTimer:0, spawnInterval:90, maxDucksOnScreen:1, reloadTimer:0
+  spawnTimer:0, spawnInterval:90, maxDucksOnScreen:1, reloadTimer:0,
+  timeLeft:0, goldenTimer: 0, lastGoldenSpawn: 0
 };
 
-let screenShake = 0;
-let hitStop = 0;
-let muzzleFlash = 0;
-let muzzleX = 0, muzzleY = 0;
-let lifeLostFlash = 0;
-let roundAnnounce = 0;
-let roundAnnounceText = '';
-let hitPulse = 0;
+const MODES = {
+  classic:  { icon:'🎯', title:'Классика',  desc:'3 жизни, раунды, утки становятся быстрее', bestKey: 'bestScore' },
+  time:     { icon:'⏱️', title:'На время',  desc:'60 секунд — убей как можно больше уток',   bestKey: 'bestTimeMode' },
+  hardcore: { icon:'💀', title:'Хардкор',   desc:'1 жизнь, утки быстрее с самого старта',    bestKey: 'bestHardcore' }
+};
+
+let screenShake = 0, hitStop = 0, muzzleFlash = 0, muzzleX = 0, muzzleY = 0;
+let lifeLostFlash = 0, roundAnnounce = 0, roundAnnounceText = '', hitPulse = 0;
+let scorePenaltyFlash = 0;
 
 // ═══════════════════════════════════════════════════════════════
-//  УТКА
+//  УТКА (3 типа: normal, golden, crow)
 // ═══════════════════════════════════════════════════════════════
-const DUCK_LIFE_FRAMES = 20 * 60;        // 20 секунд
-const DUCK_GROUND_FRAMES = 5 * 60;       // 5 секунд на земле
-const DUCK_FADE_FRAMES = 60;             // плавное исчезновение за 1 сек
+const DUCK_LIFE_FRAMES = 20 * 60;
+const DUCK_GROUND_FRAMES = 5 * 60;
+const DUCK_FADE_FRAMES = 60;
+const GOLDEN_LIFE_FRAMES = 12 * 60; // золотая живёт меньше
 
 class Duck {
-  constructor() {
+  constructor(type = 'normal') {
+    this.type = type;
     this.dir = Math.random() < 0.5 ? 1 : -1;
     this.x = this.dir === 1 ? -50 : W + 50;
     this.y = 150 + Math.random() * 200;
-    this.vx = this.dir * (1.5 + game.duckSpeed * 0.3 + Math.random() * 0.8);
+
+    const baseSpeed = 1.5 + game.duckSpeed * 0.3 + Math.random() * 0.8;
+    const mult = type === 'golden' ? 1.6 : type === 'crow' ? 1.9 : 1;
+    this.vx = this.dir * baseSpeed * mult;
     this.vy = (Math.random() - 0.5) * 1.5;
     this.alive = true; this.hit = false; this.fallVy = 0; this.rot = 0;
     this.wingPhase = Math.random() * Math.PI * 2;
-    this.changeTimer = 80 + Math.random() * 60;
+    this.changeTimer = type === 'crow' ? 50 : (type === 'golden' ? 60 : 80) + Math.random() * 60;
     this.trail = [];
     this.squash = 1;
     this.alpha = 1;
-    this.lifeTimer = 0;          // сколько кадров летает
-    this.groundTimer = -1;       // таймер после падения
-    this.escaping = false;       // улетает из-за таймаута
+    this.lifeTimer = 0;
+    this.groundTimer = -1;
+    this.escaping = false;
+    this.sizeScale = type === 'golden' ? 0.75 : type === 'crow' ? 1.15 : 1;
+    this.sparkleTimer = 0;
   }
   update() {
-    // Трейл при падении
-    if (this.hit && this.trail.length < 12) {
-      this.trail.push({ x: this.x, y: this.y, life: 20 });
-    }
+    if (this.hit && this.trail.length < 12) this.trail.push({ x: this.x, y: this.y, life: 20 });
     for (let i = this.trail.length - 1; i >= 0; i--) {
       this.trail[i].life--;
       if (this.trail[i].life <= 0) this.trail.splice(i, 1);
     }
+    if (this.type === 'golden' && !this.hit) this.sparkleTimer++;
 
-    // ═══ Подстреленная утка: падение + исчезновение на земле ═══
     if (this.hit) {
       if (this.groundTimer < 0) {
-        this.fallVy += 0.5;
-        this.y += this.fallVy;
-        this.rot += 0.15;
+        this.fallVy += 0.5; this.y += this.fallVy; this.rot += 0.15;
         if (this.squash < 1) this.squash += 0.05;
-        if (this.y > H - 60) {
-          this.fallVy = 0;
-          this.y = H - 60;
-          this.groundTimer = DUCK_GROUND_FRAMES;
-        }
+        if (this.y > H - 60) { this.fallVy = 0; this.y = H - 60; this.groundTimer = DUCK_GROUND_FRAMES; }
       } else {
         this.groundTimer--;
-        if (this.groundTimer < DUCK_FADE_FRAMES) {
-          this.alpha = this.groundTimer / DUCK_FADE_FRAMES;
-        }
-        if (this.groundTimer <= 0) {
-          this.alive = false;   // утка исчезает БЕЗ штрафа жизни
-        }
+        if (this.groundTimer < DUCK_FADE_FRAMES) this.alpha = this.groundTimer / DUCK_FADE_FRAMES;
+        if (this.groundTimer <= 0) this.alive = false;
       }
       return;
     }
-
-    // ═══ Утка улетает по таймауту (20 секунд полёта) ═══
     if (this.escaping) {
-      this.y -= 8;
-      this.x += this.vx * 0.5;
-      this.wingPhase += 0.5;
-      if (this.y < -100) {
-        this.alive = false;
-        onDuckEscaped();
-      }
+      this.y -= 8; this.x += this.vx * 0.5; this.wingPhase += 0.5;
+      if (this.y < -100) { this.alive = false; onDuckEscaped(); }
       return;
     }
-
+    const lifeLimit = this.type === 'golden' ? GOLDEN_LIFE_FRAMES : DUCK_LIFE_FRAMES;
     this.lifeTimer++;
-    if (this.lifeTimer >= DUCK_LIFE_FRAMES) {
-      this.escaping = true;
-      return;
-    }
+    if (this.lifeTimer >= lifeLimit) { this.escaping = true; return; }
 
     this.x += this.vx;
     this.y += this.vy;
-    this.wingPhase += 0.3;
+    this.wingPhase += this.type === 'crow' ? 0.42 : 0.3;
 
     this.changeTimer--;
     if (this.changeTimer <= 0) {
       this.vx = -this.vx; this.dir = -this.dir;
       this.vy = (Math.random() - 0.5) * (1 + game.round * 0.25);
-      this.changeTimer = Math.max(25, 110 - game.round * 10) + Math.random() * 40;
+      this.changeTimer = Math.max(20, 100 - game.round * 12) + Math.random() * 40;
     }
     if (this.y < 80) { this.y = 80; this.vy = Math.abs(this.vy); }
     if (this.y > H - 180) { this.y = H - 180; this.vy = -Math.abs(this.vy); }
@@ -556,60 +628,116 @@ class Duck {
     ctx.globalAlpha = 0.25 * depth;
     ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.ellipse(this.x, H * 0.72 + 20, 22 * depth, 6 * depth, 0, 0, Math.PI * 2);
+    ctx.ellipse(this.x, H * 0.72 + 20, 22 * depth * this.sizeScale, 6 * depth, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
   }
   draw() {
-    // Трейл
     for (const t of this.trail) {
       ctx.globalAlpha = (t.life / 20) * 0.4;
       ctx.fillStyle = '#fff';
-      ctx.beginPath();
-      ctx.arc(t.x, t.y, 4 * (t.life / 20), 0, Math.PI * 2);
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(t.x, t.y, 4 * (t.life / 20), 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalAlpha = this.alpha;
 
     ctx.save();
     ctx.translate(this.x, this.y);
+    ctx.scale(this.sizeScale, this.sizeScale);
     if (this.squash < 1) ctx.scale(this.squash, 2 - this.squash);
     ctx.rotate(this.hit ? this.rot : 0);
     if (this.dir === -1) ctx.scale(-1, 1);
 
+    // Спарклы для золотой утки
+    if (this.type === 'golden' && !this.hit) {
+      for (let i = 0; i < 4; i++) {
+        const a = this.sparkleTimer * 0.05 + i * Math.PI / 2;
+        const r = 30 + Math.sin(this.sparkleTimer * 0.1 + i) * 5;
+        ctx.globalAlpha = (this.alpha) * (0.5 + Math.sin(this.sparkleTimer * 0.15 + i) * 0.5);
+        ctx.fillStyle = '#fff8a0';
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * r, Math.sin(a) * r, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = this.alpha;
+    }
+
     const wing = Math.sin(this.wingPhase) * 8;
     const isDown = this.hit;
+    const t = this.type;
 
-    ctx.fillStyle = isDown ? '#888' : '#4a3728';
+    // Цвета по типу
+    let bodyColor, bellyColor, headColor, wingColor, tailColor;
+    if (t === 'golden') {
+      bodyColor = isDown ? '#a88f40' : '#e8b830';
+      bellyColor = isDown ? '#c0a060' : '#f5d060';
+      headColor = isDown ? '#a08030' : '#d4a020';
+      wingColor = isDown ? '#907020' : '#b88020';
+      tailColor = isDown ? '#806020' : '#a07010';
+    } else if (t === 'crow') {
+      bodyColor = isDown ? '#333' : '#0a0a12';
+      bellyColor = isDown ? '#444' : '#1a1a26';
+      headColor = isDown ? '#3a3a3a' : '#000';
+      wingColor = isDown ? '#2a2a2a' : '#08080e';
+      tailColor = isDown ? '#2a2a2a' : '#050508';
+    } else {
+      bodyColor = isDown ? '#888' : '#4a3728';
+      bellyColor = isDown ? '#aaa' : '#8b6f47';
+      headColor = isDown ? '#999' : '#2d5016';
+      wingColor = isDown ? '#777' : '#3a2818';
+      tailColor = isDown ? '#777' : '#2a1a10';
+    }
+
+    // Тело
+    ctx.fillStyle = bodyColor;
     ctx.beginPath(); ctx.ellipse(0,0,22,14,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = isDown ? '#aaa' : '#8b6f47';
+    ctx.fillStyle = bellyColor;
     ctx.beginPath(); ctx.ellipse(6,2,12,10,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = isDown ? '#999' : '#2d5016';
+
+    // Голова
+    ctx.fillStyle = headColor;
     ctx.beginPath(); ctx.arc(20,-6,10,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#e8a020';
+
+    // Клюв
+    ctx.fillStyle = t === 'crow' ? '#666' : (t === 'golden' ? '#d4a020' : '#e8a020');
     ctx.beginPath(); ctx.moveTo(28,-6); ctx.lineTo(38,-4); ctx.lineTo(28,-1); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(23,-8,2.5,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(23.5,-8,1.2,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = isDown ? '#777' : '#3a2818';
+
+    // Глаз
+    if (t === 'crow') {
+      // Красный глаз вороны
+      ctx.fillStyle = '#ff2020';
+      ctx.beginPath(); ctx.arc(23,-8,2.8,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(23.5,-8,1.4,0,Math.PI*2); ctx.fill();
+    } else {
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(23,-8,2.5,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(23.5,-8,1.2,0,Math.PI*2); ctx.fill();
+    }
+
+    // Крыло
+    ctx.fillStyle = wingColor;
     ctx.beginPath();
     ctx.moveTo(-5,-2);
     ctx.quadraticCurveTo(-15,-10+wing,-25,-2);
     ctx.quadraticCurveTo(-15,4+wing*0.5,-5,2);
     ctx.closePath(); ctx.fill();
-    ctx.fillStyle = isDown ? '#777' : '#2a1a10';
+
+    // Хвост
+    ctx.fillStyle = tailColor;
     ctx.beginPath(); ctx.moveTo(-20,-2); ctx.lineTo(-32,-6); ctx.lineTo(-30,4); ctx.closePath(); ctx.fill();
+
     ctx.restore();
     ctx.globalAlpha = 1;
   }
   checkHit(mx, my) {
     if (this.hit) return false;
     const dx = mx - this.x, dy = my - this.y;
-    return dx*dx + dy*dy < 32*32;
+    const radius = 32 * this.sizeScale;
+    return dx*dx + dy*dy < radius*radius;
   }
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  СОБАКА (в 2 раза крупнее)
+//  СОБАКА
 // ═══════════════════════════════════════════════════════════════
 const DOG_SCALE = 2.0;
 
@@ -637,8 +765,7 @@ class Dog {
     this.x = -100;
     this.y = H - 80;
     this.facing = 1;
-    this.state = 'announce_in';
-    this.timer = 0;
+    this.state = 'announce_in'; this.timer = 0;
   }
   grab() {
     if (this.duck) { this.duck.alive = false; this.duck = null; }
@@ -692,8 +819,6 @@ class Dog {
   }
   draw() {
     if (this.state === 'hidden') return;
-
-    // ═══ 1. ТЕЛО СОБАКИ (с зеркалированием и масштабом) ═══
     ctx.save();
     ctx.translate(this.x, this.y);
     if (this.facing === -1) ctx.scale(-1, 1);
@@ -704,12 +829,10 @@ class Dog {
                  || this.state === 'announce_in' || this.state === 'announce_out';
     const legOff = walking ? Math.sin(this.timer*0.4)*6 : 0;
 
-    // Тень
     ctx.globalAlpha = 0.25; ctx.fillStyle = '#000';
     ctx.beginPath(); ctx.ellipse(0, 34, 32, 7, 0, 0, Math.PI*2); ctx.fill();
     ctx.globalAlpha = 1;
 
-    // Хвост
     ctx.fillStyle = '#8a5a30';
     ctx.beginPath();
     ctx.moveTo(-26,-6);
@@ -717,18 +840,14 @@ class Dog {
     ctx.lineTo(-28,0);
     ctx.closePath(); ctx.fill();
 
-    // Задние лапы
     ctx.fillStyle = '#a8703a';
     ctx.fillRect(-14, 12 + legOff, 7, 14);
     ctx.fillRect(8, 12 - legOff, 7, 14);
 
-    // Тело
     ctx.fillStyle = '#c88a5a';
     ctx.beginPath(); ctx.ellipse(0,0,30,18,0,0,Math.PI*2); ctx.fill();
     ctx.fillStyle = '#e8c8a8';
     ctx.beginPath(); ctx.ellipse(2,6,22,10,0,0,Math.PI*2); ctx.fill();
-
-    // Голова
     ctx.fillStyle = '#c88a5a';
     ctx.beginPath(); ctx.arc(24,-12,14,0,Math.PI*2); ctx.fill();
     ctx.fillStyle = '#8a5a30';
@@ -738,7 +857,6 @@ class Dog {
     ctx.fillStyle = '#000';
     ctx.beginPath(); ctx.arc(41,-8,3,0,Math.PI*2); ctx.fill();
 
-    // Глаз (смех / нормальный)
     const laughing = this.state === 'popping' && this.timer > 20 && this.timer < 95;
     if (laughing) {
       ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
@@ -751,122 +869,58 @@ class Dog {
       ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(27,-14,2,0,Math.PI*2); ctx.fill();
     }
 
-    // ═══ 2. УТКА В ПАСТИ (в той же системе координат) ═══
-    if (this.state === 'grabbing' || this.state === 'running_out') {
-      this.drawHeldDuck();
-    }
+    if (this.state === 'grabbing' || this.state === 'running_out') this.drawHeldDuck();
 
     ctx.restore();
 
-    // ═══ 3. ТАБЛИЧКА "РАУНД N" (ВНЕ зеркалирования — текст не перевернётся) ═══
     if (this.state === 'announce_in' || this.state === 'announce_show' || this.state === 'announce_out') {
       const bob = Math.sin(this.timer * 0.15) * 3;
-      // Позиция таблички в мировых координатах (не зависит от facing)
-      const tableX = this.x;
-      const tableY = this.y - 125 * (DOG_SCALE / 2) + bob;
-
       ctx.save();
-      ctx.translate(tableX, tableY);
-
-      // Палка таблички
+      ctx.translate(this.x, this.y - 125 + bob);
       ctx.fillStyle = '#654321';
       ctx.fillRect(-3, 25, 6, 40);
-
-      // Белая табличка
       ctx.fillStyle = '#fff';
       ctx.strokeStyle = '#654321';
       ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.roundRect(-78, -28, 156, 58, 8);
-      ctx.fill();
-      ctx.stroke();
-
-      // Внутренняя светлая окантовка
-      ctx.strokeStyle = '#c8a878';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.roundRect(-73, -23, 146, 48, 5);
-      ctx.stroke();
-
-      // Текст (никогда не зеркалится)
+      ctx.beginPath(); ctx.roundRect(-78, -28, 156, 58, 8); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = '#c8a878'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.roundRect(-73, -23, 146, 48, 5); ctx.stroke();
       ctx.fillStyle = '#c00';
       ctx.font = 'bold 26px Courier New';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('РАУНД ' + this.announceRound, 0, 1);
       ctx.textBaseline = 'alphabetic';
-
       ctx.restore();
     }
   }
-
-  // ─── Утка в пасти — красивая, как в игре ───
   drawHeldDuck() {
     ctx.save();
-    // Утка висит в пасти, головой назад (влево)
     ctx.translate(2, -28);
-    ctx.rotate(0.15); // небольшой наклон
-
-    // Трейл падения
-    // Хвост
+    ctx.rotate(0.15);
     ctx.fillStyle = '#2a1a10';
-    ctx.beginPath();
-    ctx.moveTo(-22, -3);
-    ctx.lineTo(-34, -8);
-    ctx.lineTo(-32, 3);
-    ctx.closePath();
-    ctx.fill();
-
-    // Тело
+    ctx.beginPath(); ctx.moveTo(-22,-3); ctx.lineTo(-34,-8); ctx.lineTo(-32,3); ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#4a3728';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 22, 13, 0, 0, Math.PI*2);
-    ctx.fill();
-
-    // Грудь (светлее)
+    ctx.beginPath(); ctx.ellipse(0,0,22,13,0,0,Math.PI*2); ctx.fill();
     ctx.fillStyle = '#8b6f47';
-    ctx.beginPath();
-    ctx.ellipse(7, 1, 11, 9, 0, 0, Math.PI*2);
-    ctx.fill();
-
-    // Крыло (сложенное)
+    ctx.beginPath(); ctx.ellipse(7,1,11,9,0,0,Math.PI*2); ctx.fill();
     ctx.fillStyle = '#3a2818';
     ctx.beginPath();
-    ctx.moveTo(-3, -3);
-    ctx.quadraticCurveTo(-10, -10, -18, -3);
-    ctx.quadraticCurveTo(-12, 4, -3, 3);
-    ctx.closePath();
-    ctx.fill();
-
-    // Голова
+    ctx.moveTo(-3,-3);
+    ctx.quadraticCurveTo(-10,-10,-18,-3);
+    ctx.quadraticCurveTo(-12,4,-3,3);
+    ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#2d5016';
-    ctx.beginPath();
-    ctx.arc(21, -5, 10, 0, Math.PI*2);
-    ctx.fill();
-
-    // Клюв
+    ctx.beginPath(); ctx.arc(21,-5,10,0,Math.PI*2); ctx.fill();
     ctx.fillStyle = '#e8a020';
+    ctx.beginPath(); ctx.moveTo(29,-6); ctx.lineTo(40,-4); ctx.lineTo(29,-1); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(29, -6);
-    ctx.lineTo(40, -4);
-    ctx.lineTo(29, -1);
-    ctx.closePath();
-    ctx.fill();
-
-    // Мёртвый глаз — крестик
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(21, -8); ctx.lineTo(25, -4);
-    ctx.moveTo(25, -8); ctx.lineTo(21, -4);
+    ctx.moveTo(21,-8); ctx.lineTo(25,-4);
+    ctx.moveTo(25,-8); ctx.lineTo(21,-4);
     ctx.stroke();
-
-    // Язык из клюва (свисает)
     ctx.fillStyle = '#e05a5a';
-    ctx.beginPath();
-    ctx.ellipse(37, -1, 4, 2, 0.3, 0, Math.PI*2);
-    ctx.fill();
-
+    ctx.beginPath(); ctx.ellipse(37,-1,4,2,0.3,0,Math.PI*2); ctx.fill();
     ctx.restore();
   }
 }
@@ -881,13 +935,13 @@ let birds = [];
 // ═══════════════════════════════════════════════════════════════
 //  ЧАСТИЦЫ / ЛИСТЬЯ / ПТИЦЫ / ТРАВА
 // ═══════════════════════════════════════════════════════════════
-function spawnFeathers(x, y) {
+function spawnFeathers(x, y, color) {
   for (let i = 0; i < 14; i++) {
     particles.push({
       x, y,
       vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5 - 1,
       life: 40 + Math.random()*25, maxLife: 65,
-      size: 3 + Math.random()*3, color: '#ddd',
+      size: 3 + Math.random()*3, color: color || '#ddd',
       rot: Math.random()*Math.PI, rotSpeed: (Math.random()-0.5)*0.3
     });
   }
@@ -895,9 +949,17 @@ function spawnFeathers(x, y) {
 function spawnShotParticles(x, y) {
   for (let i = 0; i < 10; i++) {
     particles.push({
-      x, y,
-      vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12,
+      x, y, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12,
       life: 15, maxLife: 15, size: 2 + Math.random()*2, color: '#ffdd44'
+    });
+  }
+}
+function spawnSparkles(x, y) {
+  for (let i = 0; i < 20; i++) {
+    particles.push({
+      x, y, vx: (Math.random()-0.5)*8, vy: (Math.random()-0.5)*8 - 2,
+      life: 30 + Math.random()*20, maxLife: 50,
+      size: 2 + Math.random()*3, color: ['#fff8a0','#ffd700','#ffec80'][i%3]
     });
   }
 }
@@ -945,10 +1007,7 @@ const crosshair = { x: W/2, y: H/2, r: 22, pulse: 0 };
 
 function toGameCoords(cx, cy) {
   const rect = canvas.getBoundingClientRect();
-  return {
-    x: (cx - rect.left - offsetX) / scale,
-    y: (cy - rect.top - offsetY) / scale
-  };
+  return { x: (cx - rect.left - offsetX) / scale, y: (cy - rect.top - offsetY) / scale };
 }
 canvas.addEventListener('mousemove', e => {
   const p = toGameCoords(e.clientX, e.clientY);
@@ -985,8 +1044,7 @@ function shoot() {
   sfx.shoot();
   crosshair.pulse = 1;
   muzzleX = crosshair.x; muzzleY = crosshair.y;
-  muzzleFlash = 1;
-  screenShake = 8;
+  muzzleFlash = 1; screenShake = 8;
   spawnShotParticles(crosshair.x, crosshair.y);
 
   let hit = false;
@@ -995,22 +1053,74 @@ function shoot() {
       d.hit = true;
       d.fallVy = -4;
       d.squash = 0.5;
-      spawnFeathers(d.x, d.y);
-      sfx.hit();
       hit = true;
-      game.score += 100 * game.round;
-      game.ducksKilled++;
-      stats.hits++;
-      hitPulse = 1;
-      showFloater('+' + (100*game.round), d.x, d.y);
-      if (dog.state === 'hidden') dog.startFetch(d);
+
+      // Логика по типу
+      if (d.type === 'golden') {
+        const pts = 1000 * game.round;
+        game.score += pts;
+        game.ducksKilled++;
+        stats.hits++;
+        progress.goldenDucks++;
+        saveProgress();
+        spawnSparkles(d.x, d.y);
+        spawnFeathers(d.x, d.y, '#ffd700');
+        sfx.golden();
+        showFloater('+' + pts + ' ✨', d.x, d.y, '#ffd700', 32);
+        hitPulse = 1;
+        if (progress.goldenDucks >= 5) unlockAchievement('golden');
+      } else if (d.type === 'crow') {
+        const penalty = 300 * game.round;
+        game.score = Math.max(0, game.score - penalty);
+        stats.hits++;
+        progress.crowHits++;
+        saveProgress();
+        scorePenaltyFlash = 1;
+        spawnFeathers(d.x, d.y, '#222');
+        sfx.crow();
+        showFloater('−' + penalty + ' 🐦‍⬛', d.x, d.y, '#ef4444', 28);
+        screenShake = 16;
+        if (progress.crowHits >= 5) unlockAchievement('crow_master');
+      } else {
+        const pts = 100 * game.round;
+        game.score += pts;
+        game.ducksKilled++;
+        stats.hits++;
+        progress.totalDucks++;
+        saveProgress();
+        spawnFeathers(d.x, d.y);
+        sfx.hit();
+        showFloater('+' + pts, d.x, d.y);
+        hitPulse = 1;
+        if (progress.totalDucks === 1) unlockAchievement('first_blood');
+        if (progress.totalDucks >= 100) unlockAchievement('hunter');
+      }
+
+      // Streak только для уток и золотых
+      if (d.type !== 'crow') {
+        progress.currentStreak++;
+        if (progress.currentStreak > progress.bestStreak) progress.bestStreak = progress.currentStreak;
+        if (progress.currentStreak >= 5) unlockAchievement('streak5');
+        if (progress.currentStreak >= 10) unlockAchievement('streak10');
+      } else {
+        progress.currentStreak = 0;
+      }
+
+      if (dog.state === 'hidden' && d.type !== 'crow') dog.startFetch(d);
       break;
     }
   }
-  if (!hit) { stats.misses++; sfx.miss(); }
-  else { hitStop = 4; screenShake = 12; }
+  if (!hit) {
+    stats.misses++;
+    progress.currentStreak = 0;
+    sfx.miss();
+  } else {
+    hitStop = 4;
+    if (screenShake < 12) screenShake = 12;
+  }
   saveStats();
 
+  // Проверка "Снайпер" в конце раунда
   if (game.ammo <= 0) {
     game.reloadTimer = 90;
     setTimeout(sfx.reload, 800);
@@ -1022,6 +1132,8 @@ function shoot() {
 // ═══════════════════════════════════════════════════════════════
 function onDuckEscaped() {
   stats.escaped++;
+  if (game.mode === 'time') return; // в режиме "На время" жизни не тратятся
+
   game.lives--;
   lifeLostFlash = 1;
   showFloater('− 1 ЖИЗНЬ', W/2, H/2, '#ef4444', 42);
@@ -1034,30 +1146,56 @@ function onDuckEscaped() {
 function triggerGameOver() {
   state = STATE.GAME_OVER;
   sfx.over();
+
+  // Проверка рекордов
   if (game.score > stats.bestScore) stats.bestScore = game.score;
   if (game.round > stats.bestRound) stats.bestRound = game.round;
   const acc = stats.shots > 0 ? Math.round(stats.hits / stats.shots * 100) : 0;
   if (acc > stats.bestAccuracy) stats.bestAccuracy = acc;
-  addTopScore(game.score, game.round);
+
+  if (game.mode === 'time' && game.score > stats.bestTimeMode) stats.bestTimeMode = game.score;
+  if (game.mode === 'hardcore' && game.score > stats.bestHardcore) stats.bestHardcore = game.score;
+
+  addTopScore(game.score, game.round, game.mode);
   saveStats();
+
+  // Достижения в конце игры
+  if (game.score >= 10000) unlockAchievement('rich');
+  if (game.round >= 5) unlockAchievement('veteran');
+  if (game.round >= 10) unlockAchievement('legend');
+  if (game.mode === 'time' && game.score >= 3000) unlockAchievement('time_master');
+  if (stats.games >= 25) unlockAchievement('master');
+
   document.getElementById('finalScore').textContent = game.score;
   document.getElementById('finalRound').textContent = game.round;
+  document.getElementById('finalMode').textContent = MODES[game.mode].title;
   setTimeout(() => showScreen('gameoverScreen'), 800);
 }
 
-function startGame() {
+function startGame(mode) {
   initAudio();
+  game.mode = mode || game.mode;
+
   state = STATE.PLAY;
-  game.score = 0; game.scoreDisplay = 0; game.round = 1; game.lives = START_LIVES;
+  game.score = 0; game.scoreDisplay = 0; game.round = 1;
   game.ammo = game.maxAmmo; game.reloadTimer = 0;
-  game.spawnTimer = 30; game.spawnInterval = 90; game.duckSpeed = 1.2;
+  game.spawnTimer = 30; game.spawnInterval = 90;
+  game.duckSpeed = game.mode === 'hardcore' ? 2.0 : 1.2;
   game.maxDucksOnScreen = 1; game.ducksKilled = 0; game.ducksNeeded = 6;
+  game.lives = game.mode === 'hardcore' ? 1 : START_LIVES;
+  game.timeLeft = game.mode === 'time' ? 60 * 60 : 0;
+  game.goldenTimer = 25 * 60; // первая золотая утка через ~25 сек
+  game.lastGoldenSpawn = 0;
+
   ducks = []; particles = []; floaters = []; leaves = [];
   dog.state = 'hidden'; dog.duck = null; dog.timer = 0;
   lifeLostFlash = 0; screenShake = 0; hitStop = 0; roundAnnounce = 0;
+  progress.currentStreak = 0;
   showScreen(null);
+
   stats.games++;
   saveStats();
+  if (stats.games >= 25) unlockAchievement('master');
 }
 
 function nextRound() {
@@ -1069,6 +1207,10 @@ function nextRound() {
   game.spawnInterval = Math.max(40, game.spawnInterval - 12);
   game.maxDucksOnScreen = Math.min(2, 1 + Math.floor(game.round / 3));
   game.ammo = game.maxAmmo; game.reloadTimer = 0;
+
+  // Снайпер за раунд
+  if (game.round > 1 && stats.shots >= 5) { /* не сбрасываем глобально, проверим ниже */ }
+
   state = STATE.PLAY;
   ducks = [];
   dog.state = 'hidden'; dog.duck = null; dog.timer = 0;
@@ -1077,6 +1219,9 @@ function nextRound() {
   roundAnnounce = 1;
   roundAnnounceText = 'РАУНД ' + game.round;
   game.spawnTimer = 180;
+
+  if (game.round >= 5) unlockAchievement('veteran');
+  if (game.round >= 10) unlockAchievement('legend');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1086,6 +1231,7 @@ function update() {
   if (screenShake > 0) screenShake = Math.max(0, screenShake - 0.7);
   if (muzzleFlash > 0) muzzleFlash = Math.max(0, muzzleFlash - 0.15);
   if (lifeLostFlash > 0) lifeLostFlash = Math.max(0, lifeLostFlash - 0.02);
+  if (scorePenaltyFlash > 0) scorePenaltyFlash = Math.max(0, scorePenaltyFlash - 0.02);
   if (crosshair.pulse > 0) crosshair.pulse = Math.max(0, crosshair.pulse - 0.08);
   if (hitPulse > 0) hitPulse = Math.max(0, hitPulse - 0.05);
   if (game.scoreDisplay !== game.score) {
@@ -1097,16 +1243,12 @@ function update() {
 
   if (hitStop > 0) {
     hitStop--;
-    updateParticles();
-    updateLeaves();
-    dog.update();
+    updateParticles(); updateLeaves(); dog.update();
     return;
   }
 
   dog.update();
-  updateParticles();
-  updateLeaves();
-  updateBirds();
+  updateParticles(); updateLeaves(); updateBirds();
 
   for (let i = floaters.length - 1; i >= 0; i--) {
     floaters[i].y -= 0.8; floaters[i].life--;
@@ -1115,14 +1257,34 @@ function update() {
 
   if (state !== STATE.PLAY) return;
 
+  // Таймер режима "На время"
+  if (game.mode === 'time') {
+    game.timeLeft--;
+    if (game.timeLeft <= 0) { triggerGameOver(); return; }
+  }
+
   if (game.reloadTimer > 0) {
     game.reloadTimer--;
     if (game.reloadTimer === 0) game.ammo = game.maxAmmo;
   }
+
+  // Спавн золотой утки
+  game.goldenTimer--;
+  if (game.goldenTimer <= 0 && !ducks.some(d => d.type === 'golden')) {
+    ducks.push(new Duck('golden'));
+    game.goldenTimer = 45 * 60 + Math.random() * 20 * 60; // 45-65 сек
+  }
+
   if (game.reloadTimer === 0) {
     game.spawnTimer--;
-    if (game.spawnTimer <= 0 && ducks.filter(d => !d.hit).length < game.maxDucksOnScreen) {
-      ducks.push(new Duck());
+    if (game.spawnTimer <= 0 && ducks.filter(d => !d.hit && d.type !== 'golden').length < game.maxDucksOnScreen) {
+      // Спавн вороны с 3 раунда (классика/хардкор) или с 30 сек (время)
+      let spawnType = 'normal';
+      const crowChance = game.mode === 'time'
+        ? (60*60 - game.timeLeft > 30*60 ? 0.25 : 0)
+        : (game.round >= 3 ? Math.min(0.3, 0.1 + game.round * 0.03) : 0);
+      if (Math.random() < crowChance) spawnType = 'crow';
+      ducks.push(new Duck(spawnType));
       game.spawnTimer = game.spawnInterval;
     }
   }
@@ -1132,7 +1294,12 @@ function update() {
     if (!ducks[i].alive) ducks.splice(i, 1);
   }
 
-  if (game.ducksKilled >= game.ducksNeeded) {
+  // Проверка завершения раунда (не для режима "На время")
+  if (game.mode !== 'time' && game.ducksKilled >= game.ducksNeeded) {
+    // Снайпер за раунд
+    const roundAcc = stats.shots > 0 ? stats.hits / stats.shots : 0;
+    if (stats.shots >= 5 && roundAcc >= 1) unlockAchievement('sniper');
+
     state = STATE.ROUND_END;
     beep(800,0.1,'square',0.2);
     setTimeout(()=>beep(1000,0.1,'square',0.2),100);
@@ -1163,8 +1330,7 @@ function updateLeaves() {
 }
 function updateBirds() {
   for (const b of birds) {
-    b.x -= b.speed;
-    b.wingPhase += 0.15;
+    b.x -= b.speed; b.wingPhase += 0.15;
     if (b.x < -20) { b.x = W + 20; b.y = 40 + Math.random() * 80; b.speed = 0.3 + Math.random() * 0.4; }
   }
 }
@@ -1261,7 +1427,8 @@ function drawHUD() {
   ctx.save();
   ctx.translate(20, 40); ctx.scale(scoreScale, scoreScale);
   ctx.font = 'bold 26px Courier New'; ctx.textAlign = 'left';
-  ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
+  ctx.fillStyle = scorePenaltyFlash > 0 ? '#ef4444' : '#fff';
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
   ctx.strokeText('SCORE: ' + Math.round(game.scoreDisplay), 0, 0);
   ctx.fillText('SCORE: ' + Math.round(game.scoreDisplay), 0, 0);
   ctx.restore();
@@ -1269,9 +1436,20 @@ function drawHUD() {
   ctx.textAlign = 'left';
   ctx.font = 'bold 26px Courier New';
   ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
-  ctx.strokeText('УТОК: ' + game.ducksKilled + ' / ' + game.ducksNeeded, 20, 72);
-  ctx.fillText('УТОК: ' + game.ducksKilled + ' / ' + game.ducksNeeded, 20, 72);
 
+  if (game.mode === 'time') {
+    const sec = Math.ceil(game.timeLeft / 60);
+    const col = sec <= 10 ? '#ef4444' : '#4ade80';
+    ctx.fillStyle = col;
+    ctx.strokeText('⏱️ ' + sec + ' сек', 20, 72);
+    ctx.fillText('⏱️ ' + sec + ' сек', 20, 72);
+    ctx.fillStyle = '#fff';
+  } else {
+    ctx.strokeText('УТОК: ' + game.ducksKilled + ' / ' + game.ducksNeeded, 20, 72);
+    ctx.fillText('УТОК: ' + game.ducksKilled + ' / ' + game.ducksNeeded, 20, 72);
+  }
+
+  // Сердечки
   const now = performance.now() * 0.003;
   for (let i = 0; i < game.lives; i++) {
     const x = 20 + i * 26;
@@ -1283,12 +1461,14 @@ function drawHUD() {
     ctx.restore();
   }
 
+  // ROUND
   ctx.textAlign = 'right';
   ctx.font = 'bold 26px Courier New';
-  ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
-  ctx.strokeText('ROUND ' + game.round, W - 30, 40);
-  ctx.fillText('ROUND ' + game.round, W - 30, 40);
+  ctx.fillStyle = '#fff';
+  ctx.strokeText(game.mode === 'time' ? MODES.time.title : 'ROUND ' + game.round, W - 30, 40);
+  ctx.fillText(game.mode === 'time' ? MODES.time.title : 'ROUND ' + game.round, W - 30, 40);
 
+  // Патроны
   const startX = W - 30, startY = 80;
   for (let i = 0; i < game.maxAmmo; i++) {
     const x = startX - i*18;
@@ -1299,11 +1479,11 @@ function drawHUD() {
   }
 
   if (game.reloadTimer > 0) {
-    const progress = 1 - (game.reloadTimer / 90);
+    const progress2 = 1 - (game.reloadTimer / 90);
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(W - 160, 110, 130, 16);
     ctx.fillStyle = '#f87171';
-    ctx.fillRect(W - 158, 112, 126 * progress, 12);
+    ctx.fillRect(W - 158, 112, 126 * progress2, 12);
     ctx.textAlign = 'right';
     ctx.font = 'bold 14px Courier New'; ctx.fillStyle = '#fff';
     ctx.fillText('ПЕРЕЗАРЯДКА', W - 30, 145);
@@ -1389,14 +1569,16 @@ function draw() {
   drawParticles();
   drawMuzzleFlash();
 
-  if (state === STATE.PLAY || state === STATE.ROUND_END || state === STATE.GAME_OVER) {
-    drawHUD();
-  }
+  if (state === STATE.PLAY || state === STATE.ROUND_END || state === STATE.GAME_OVER) drawHUD();
   drawFloaters();
   drawRoundAnnounce();
 
   if (lifeLostFlash > 0) {
     ctx.fillStyle = 'rgba(220, 38, 38, ' + (lifeLostFlash * 0.35) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+  if (scorePenaltyFlash > 0) {
+    ctx.fillStyle = 'rgba(180, 20, 180, ' + (scorePenaltyFlash * 0.25) + ')';
     ctx.fillRect(0, 0, W, H);
   }
 
@@ -1416,9 +1598,7 @@ function loop() {
   ctx.setTransform(currentDpr, 0, 0, currentDpr, 0, 0);
   ctx.translate(offsetX + shakeX, offsetY + shakeY);
   ctx.scale(scale, scale);
-  ctx.beginPath();
-  ctx.rect(-20, -20, W + 40, H + 40);
-  ctx.clip();
+  ctx.beginPath(); ctx.rect(-20, -20, W + 40, H + 40); ctx.clip();
   draw();
   ctx.restore();
 
@@ -1448,6 +1628,30 @@ function showScreen(name) {
   if (name) document.getElementById(name).classList.add('show');
   const q = document.getElementById('quickExit');
   if (q) q.style.display = (state === STATE.PLAY && !name) ? 'block' : 'none';
+}
+
+function renderModes() {
+  const el = document.getElementById('modeList');
+  el.innerHTML = '';
+  for (const key in MODES) {
+    const m = MODES[key];
+    const best = stats[m.bestKey] || 0;
+    const div = document.createElement('div');
+    div.className = 'mode-card';
+    div.dataset.mode = key;
+    div.innerHTML =
+      '<div class="mode-icon">' + m.icon + '</div>' +
+      '<div class="mode-info">' +
+        '<div class="mode-title">' + m.title + '</div>' +
+        '<div class="mode-desc">' + m.desc + '</div>' +
+        (best > 0 ? '<div class="mode-best">🏆 Лучший: ' + best + '</div>' : '') +
+      '</div>';
+    div.addEventListener('click', () => {
+      initAudio();
+      startGame(key);
+    });
+    el.appendChild(div);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1492,7 +1696,8 @@ function generateStoryImage() {
   g.font = 'bold 80px "Courier New", monospace';
   g.fillStyle = '#fff'; g.lineWidth = 8;
   g.strokeText('СЧЁТ: ' + game.score, 540, 600); g.fillText('СЧЁТ: ' + game.score, 540, 600);
-  g.strokeText('РАУНД: ' + game.round, 540, 720); g.fillText('РАУНД: ' + game.round, 540, 720);
+  g.strokeText('РЕЖИМ: ' + MODES[game.mode].title, 540, 720);
+  g.fillText('РЕЖИМ: ' + MODES[game.mode].title, 540, 720);
   g.font = 'bold 60px "Courier New", monospace';
   g.fillStyle = '#4ade80'; g.lineWidth = 6;
   g.strokeText('Попробуй побить мой рекорд!', 540, 900);
@@ -1501,10 +1706,8 @@ function generateStoryImage() {
 }
 
 async function openVkLink(url) {
-  try {
-    if (vkReady) await vkSend('VKWebAppOpenLink', { link: url });
-    else window.open(url, '_blank');
-  } catch (e) { window.open(url, '_blank'); }
+  try { if (vkReady) await vkSend('VKWebAppOpenLink', { link: url }); else window.open(url, '_blank'); }
+  catch (e) { window.open(url, '_blank'); }
 }
 
 const claimed = {};
@@ -1524,15 +1727,20 @@ async function renderBonusList() {
     const isStoryOnDesktop = b.id === 'story' && !isMobile;
     const div = document.createElement('div');
     div.className = 'bonus-item' + (isClaimed ? ' claimed' : '');
+    div.style.cssText = 'display:flex;align-items:center;gap:10px;background:rgba(30,41,59,0.9);border:2px solid #334155;border-radius:8px;padding:6px 12px;';
     div.innerHTML =
-      '<div class="icon">' + b.icon + '</div>' +
-      '<div class="info">' +
-        '<div class="label">' + b.label + '</div>' +
-        '<div class="reward">' + (isStoryOnDesktop
-          ? '📱 Доступно только в мобильном приложении VK'
-          : '+' + b.reward + ' ❤️ жизн' + (b.reward === 1 ? 'ь' : 'и')) + '</div>' +
+      '<div style="font-size:20px;width:28px;text-align:center;">' + b.icon + '</div>' +
+      '<div style="flex:1;text-align:left;">' +
+        '<div style="font-size:14px;color:#e2e8f0;font-weight:bold;">' + b.label + '</div>' +
+        '<div style="font-size:11px;color:#4ade80;margin-top:2px;">' +
+          (isStoryOnDesktop ? '📱 Доступно в мобильном VK' : '+' + b.reward + ' ❤️ жизн' + (b.reward === 1 ? 'ь' : 'и')) +
+        '</div>' +
       '</div>' +
-      '<button ' + (isClaimed || isStoryOnDesktop ? 'disabled' : '') + ' data-bonus="' + b.id + '">' +
+      '<button ' + (isClaimed || isStoryOnDesktop ? 'disabled' : '') + ' data-bonus="' + b.id + '" ' +
+        'style="padding:7px 14px;background:' + (isClaimed || isStoryOnDesktop ? '#334155' : '#4ade80') + ';' +
+        'color:' + (isClaimed || isStoryOnDesktop ? '#64748b' : '#052e16') + ';border:none;' +
+        'font-family:inherit;font-weight:bold;font-size:12px;border-radius:6px;' +
+        'cursor:' + (isClaimed || isStoryOnDesktop ? 'default' : 'pointer') + ';min-width:90px;">' +
         (isClaimed ? '✓ Получено' : isStoryOnDesktop ? '📱 VK Mobile' : 'Получить') +
       '</button>';
     el.appendChild(div);
@@ -1549,54 +1757,34 @@ async function claimBonus(id) {
   if (!b || claimed[id]) return;
   const loader = document.getElementById('bonusLoader');
   loader.textContent = '⏳ Ожидание действия...';
-
   let ok = false;
   try {
     if (b.id === 'story') {
-      // Для истории: ждём промис, но не дольше 2 секунд — иначе начисляем принудительно
       try {
-        await Promise.race([
-          b.vk(),
-          new Promise((_, rej) => setTimeout(() => rej(new Error('story timeout')), 2000))
-        ]);
-      } catch (e) {
-        // Таймаут или ошибка — всё равно считаем успехом (пользователь открыл редактор)
-        console.log('story:', e.message);
-      }
+        await Promise.race([b.vk(), new Promise((_, rej) => setTimeout(() => rej(new Error('story timeout')), 2000))]);
+      } catch (e) { console.log('story:', e.message); }
       ok = true;
-    } else {
-      await b.vk();
-      ok = true;
-    }
+    } else { await b.vk(); ok = true; }
   } catch (e) {
     console.log('Bonus error:', e);
-    if (b.id === 'story') ok = false;
-    else ok = true;
+    if (b.id === 'story') ok = false; else ok = true;
   }
-
   if (ok) {
     claimed[id] = true;
     await storageSet('bonus_' + id, '1');
-
     let started = false;
-    if (state === STATE.GAME_OVER) {
-      startGameWithBonus(b.reward);
-      started = true;
-    } else if (state === STATE.PLAY) {
+    if (state === STATE.GAME_OVER) { startGameWithBonus(b.reward); started = true; }
+    else if (state === STATE.PLAY) {
       game.lives += b.reward;
       for (let i = 0; i < b.reward; i++)
         showFloater('+1 ❤️', W/2 + i*40 - 20, H - 100, '#4ade80', 28);
-    } else {
-      pendingBonusLives += b.reward;
-    }
+    } else pendingBonusLives += b.reward;
     sfx.life();
     loader.textContent = '✅ Получено +' + b.reward + ' ❤️';
     renderBonusList();
-
-    // Для story или любого бонуса — автозакрытие экрана бонусов через 1.2 сек
     setTimeout(() => {
       loader.textContent = '';
-      if (started) return; // если игра уже запущена startGameWithBonus — экран закрыт
+      if (started) return;
       if (state === STATE.GAME_OVER) showScreen('gameoverScreen');
       else if (state === STATE.PLAY) showScreen(null);
       else showScreen('menuScreen');
@@ -1609,7 +1797,7 @@ async function claimBonus(id) {
 
 function startGameWithBonus(extraLives) {
   startGame();
-  game.lives = START_LIVES + extraLives;
+  game.lives = (game.mode === 'hardcore' ? 1 : START_LIVES) + extraLives;
   for (let i = 0; i < extraLives; i++)
     showFloater('+1 ❤️', W/2 + i*40 - 20, H - 100, '#4ade80', 28);
 }
@@ -1635,14 +1823,37 @@ async function renderLeader() {
     list.innerHTML = topScores.map((s, i) => {
       const d = new Date(s.date || Date.now());
       const dateStr = d.toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit' });
+      const modeName = s.mode ? (MODES[s.mode]?.title || s.mode) : 'Классика';
       return '<div class="top-item ' + (i === 0 ? 'first' : '') + '">' +
         '<span class="rank">#' + (i + 1) + '</span>' +
         '<span class="score">' + s.score + '</span>' +
-        '<span class="round">раунд ' + s.round + '</span>' +
+        '<span class="mode-tag">' + modeName + '</span>' +
         '<span class="date">' + dateStr + '</span>' +
       '</div>';
     }).join('');
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ДОСТИЖЕНИЯ UI
+// ═══════════════════════════════════════════════════════════════
+function renderAchievements() {
+  const grid = document.getElementById('achGrid');
+  const countEl = document.getElementById('achCount');
+  let unlocked = 0;
+  grid.innerHTML = ACHIEVEMENTS.map(a => {
+    const u = unlockedAch[a.id];
+    if (u) unlocked++;
+    return '<div class="ach-item' + (u ? ' unlocked' : '') + '">' +
+      '<div class="ach-icon">' + a.icon + '</div>' +
+      '<div class="ach-info">' +
+        '<div class="ach-title">' + a.title + '</div>' +
+        '<div class="ach-desc">' + a.desc + '</div>' +
+      '</div>' +
+      (u ? '<div class="ach-check">✓</div>' : '') +
+    '</div>';
+  }).join('');
+  countEl.textContent = 'Открыто ' + unlocked + ' / ' + ACHIEVEMENTS.length;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1653,10 +1864,11 @@ document.addEventListener('click', async e => {
   if (!btn) return;
   const action = btn.dataset.action;
 
-  if (action === 'start' || action === 'restart') {
-    startGame();
+  if (action === 'modes') { renderModes(); showScreen('modeScreen'); }
+  else if (action === 'restart') {
+    startGame(game.mode);
     if (pendingBonusLives > 0) {
-      game.lives = START_LIVES + pendingBonusLives;
+      game.lives = (game.mode === 'hardcore' ? 1 : START_LIVES) + pendingBonusLives;
       pendingBonusLives = 0;
     }
     showScreen(null);
@@ -1677,6 +1889,8 @@ document.addEventListener('click', async e => {
     if (state === STATE.GAME_OVER) showScreen('gameoverScreen');
     else showScreen('menuScreen');
   }
+  else if (action === 'achievements') { renderAchievements(); showScreen('achScreen'); }
+  else if (action === 'close-ach') { showScreen('menuScreen'); }
   else if (action === 'reset-scores') {
     if (confirm('Сбросить все рекорды и статистику?')) {
       await resetStats(); await renderLeader();
@@ -1704,14 +1918,13 @@ document.addEventListener('click', async e => {
 // ═══════════════════════════════════════════════════════════════
 (function bootstrap() {
   console.log('🦆 [bootstrap] start');
-  try { loop(); console.log('🦆 [bootstrap] loop started'); }
-  catch (e) { console.error('🦆 [bootstrap] loop error', e); }
+  try { loop(); console.log('🦆 loop started'); }
+  catch (e) { console.error('loop error', e); }
   showScreen('menuScreen');
 
   Promise.race([
     Promise.all([
-      loadClaimed(),
-      loadStats(),
+      loadClaimed(), loadStats(), loadAchievements(),
       (async () => {
         const on = await storageGet('music_on');
         Music.enabled = (on === null) ? true : (on === '1');
@@ -1719,7 +1932,7 @@ document.addEventListener('click', async e => {
       })()
     ]),
     new Promise(r => setTimeout(r, 1500))
-  ]).then(() => { console.log('🦆 bootstrap done'); })
+  ]).then(() => console.log('🦆 bootstrap done'))
     .catch(e => console.warn('preload:', e));
 })();
 </script>
