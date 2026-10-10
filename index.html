@@ -1726,7 +1726,11 @@ const BONUSES = [
       return vkSend('VKWebAppShowStoryBox', {
         background_type: 'image',
         blob: dataUrl,
-        attachment: { text: 'Играть', type: 'url', url: 'https://vk.com/app' + VK_APP_ID }
+        attachment: {
+  text: 'Играть',
+  type: 'mini_app',
+  url: 'https://vk.com/app' + VK_APP_ID
+}
       });
     }
   },
