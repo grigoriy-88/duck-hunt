@@ -228,8 +228,8 @@
 // ═══════════════════════════════════════════════════════════════
 //  НАСТРОЙКИ VK
 // ═══════════════════════════════════════════════════════════════
-const VK_GROUP_ID = 12345678;
-const VK_POST_ID  = 1;
+const VK_GROUP_ID = 228373135;
+const VK_POST_ID  = 8035;
 const VK_APP_ID   = 54782689;
 const START_LIVES = 3;
 
@@ -1670,8 +1670,8 @@ const BONUSES = [
     vk: () => vkSend('VKWebAppAllowMessagesFromGroup', { group_id: VK_GROUP_ID }) },
   { id: 'favorite', icon:'⭐', label:'Добавить в избранное',        reward:1,
     vk: () => vkSend('VKWebAppAddToFavorites') },
-  { id: 'story', icon: '📸', label: 'Опубликовать историю', reward: 2,
-    vk: () => {
+  { id: 'story', icon: '📸', label: 'Опубликовать историю', reward: 2, repeatable: true,
+  vk: () => {
       const dataUrl = generateStoryImage();
       return vkSend('VKWebAppShowStoryBox', {
         background_type: 'image',
@@ -1682,8 +1682,8 @@ const BONUSES = [
   },
   { id: 'like',     icon:'❤️', label:'Поставить лайк посту',       reward:1,
     vk: () => openVkLink('https://vk.com/wall-' + VK_GROUP_ID + '_' + VK_POST_ID) },
-  { id: 'comment',  icon:'💬', label:'Оставить комментарий',        reward:1,
-    vk: () => openVkLink('https://vk.com/wall-' + VK_GROUP_ID + '_' + VK_POST_ID) }
+  { id: 'comment',  icon:'💬', label:'Оставить комментарий',        reward:1, repeatable: true,
+  vk: () => openVkLink('https://vk.com/wall-' + VK_GROUP_ID + '_' + VK_POST_ID) }
 ];
 
 function generateStoryImage() {
@@ -1719,6 +1719,8 @@ async function openVkLink(url) {
 const claimed = {};
 async function loadClaimed() {
   for (const b of BONUSES) {
+    // Повторяемые бонусы не считаются «полученными»
+    if (b.repeatable) { claimed[b.id] = false; continue; }
     const v = await storageGet('bonus_' + b.id);
     claimed[b.id] = v === '1';
   }
@@ -1728,8 +1730,8 @@ async function renderBonusList() {
   const el = document.getElementById('bonusList');
   el.innerHTML = '';
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-  for (const b of BONUSES) {
-    const isClaimed = !!claimed[b.id];
+    for (const b of BONUSES) {
+    const isClaimed = !b.repeatable && !!claimed[b.id];
     const isStoryOnDesktop = b.id === 'story' && !isMobile;
     const div = document.createElement('div');
     div.className = 'bonus-item' + (isClaimed ? ' claimed' : '');
@@ -1738,8 +1740,10 @@ async function renderBonusList() {
       '<div style="font-size:20px;width:28px;text-align:center;">' + b.icon + '</div>' +
       '<div style="flex:1;text-align:left;">' +
         '<div style="font-size:14px;color:#e2e8f0;font-weight:bold;">' + b.label + '</div>' +
-        '<div style="font-size:11px;color:#4ade80;margin-top:2px;">' +
-          (isStoryOnDesktop ? '📱 Доступно в мобильном VK' : '+' + b.reward + ' ❤️ жизн' + (b.reward === 1 ? 'ь' : 'и')) +
+                '<div style="font-size:11px;color:#4ade80;margin-top:2px;">' +
+          (isStoryOnDesktop ? '📱 Доступно в мобильном VK'
+            : '+' + b.reward + ' ❤️ жизн' + (b.reward === 1 ? 'ь' : 'и')
+              + (b.repeatable ? ' (каждый раз)' : '')) +
         '</div>' +
       '</div>' +
       '<button ' + (isClaimed || isStoryOnDesktop ? 'disabled' : '') + ' data-bonus="' + b.id + '" ' +
@@ -1775,9 +1779,12 @@ async function claimBonus(id) {
     console.log('Bonus error:', e);
     if (b.id === 'story') ok = false; else ok = true;
   }
-  if (ok) {
-    claimed[id] = true;
-    await storageSet('bonus_' + id, '1');
+    if (ok) {
+    // Повторяемые бонусы не «закрываем»
+    if (!b.repeatable) {
+      claimed[id] = true;
+      await storageSet('bonus_' + id, '1');
+    }
     let started = false;
     if (state === STATE.GAME_OVER) { startGameWithBonus(b.reward); started = true; }
     else if (state === STATE.PLAY) {
