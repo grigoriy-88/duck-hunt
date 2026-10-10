@@ -563,9 +563,11 @@ class Duck {
     this.x = this.dir === 1 ? -50 : W + 50;
     this.y = 150 + Math.random() * 200;
 
-    const baseSpeed = 1.5 + game.duckSpeed * 0.3 + Math.random() * 0.8;
-    const mult = type === 'golden' ? 1.6 : type === 'crow' ? 1.9 : 1;
-    this.vx = this.dir * baseSpeed * mult;
+    // В хардкоре утки летают на 80% быстрее
+const hardcoreMult = game.mode === 'hardcore' ? 1.8 : 1;
+const baseSpeed = (1.5 + game.duckSpeed * 0.3 + Math.random() * 0.8) * hardcoreMult;
+const mult = type === 'golden' ? 1.6 : type === 'crow' ? 1.9 : 1;
+this.vx = this.dir * baseSpeed * mult;
     this.vy = (Math.random() - 0.5) * 1.5;
     this.alive = true; this.hit = false; this.fallVy = 0; this.rot = 0;
     this.wingPhase = Math.random() * Math.PI * 2;
@@ -601,7 +603,7 @@ class Duck {
     }
     if (this.escaping) {
       this.y -= 8; this.x += this.vx * 0.5; this.wingPhase += 0.5;
-      if (this.y < -100) { this.alive = false; onDuckEscaped(); }
+      if (this.y < -100) { this.alive = false; onDuckEscaped(this.type); }
       return;
     }
     const lifeLimit = this.type === 'golden' ? GOLDEN_LIFE_FRAMES : DUCK_LIFE_FRAMES;
@@ -620,7 +622,7 @@ class Duck {
     }
     if (this.y < 80) { this.y = 80; this.vy = Math.abs(this.vy); }
     if (this.y > H - 180) { this.y = H - 180; this.vy = -Math.abs(this.vy); }
-    if (this.x < -80 || this.x > W + 80) { this.alive = false; onDuckEscaped(); }
+        if (this.x < -80 || this.x > W + 80) { this.alive = false; onDuckEscaped(this.type); }
   }
   drawShadow() {
     if (this.hit) return;
@@ -1130,8 +1132,12 @@ function shoot() {
 // ═══════════════════════════════════════════════════════════════
 //  ЛОГИКА
 // ═══════════════════════════════════════════════════════════════
-function onDuckEscaped() {
+function onDuckEscaped(type) {
   stats.escaped++;
+
+  // Вороны и золотые утки НЕ отнимают жизни — это ловушки и бонусы
+  if (type === 'crow' || type === 'golden') return;
+
   if (game.mode === 'time') return; // в режиме "На время" жизни не тратятся
 
   game.lives--;
@@ -1202,7 +1208,7 @@ function nextRound() {
   stats.rounds++;
   game.round++;
   game.ducksKilled = 0;
-  game.duckSpeed += 0.35;
+  game.duckSpeed += (game.mode === 'hardcore' ? 0.7 : 0.35);
   game.ducksNeeded += 2;
   game.spawnInterval = Math.max(40, game.spawnInterval - 12);
   game.maxDucksOnScreen = Math.min(2, 1 + Math.floor(game.round / 3));
